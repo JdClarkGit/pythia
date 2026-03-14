@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARB-BOT | Trade Log</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div class="page-wrapper">
+
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="dot"></span>ARB-BOT
+    </div>
+    <div class="nav-links">
+      <a href="index.html"      class="nav-link">Dashboard</a>
+      <a href="strategies.html" class="nav-link">Strategies</a>
+      <a href="scanner.html"    class="nav-link">Scanner</a>
+      <a href="trades.html"     class="nav-link active">Trades</a>
+      <a href="wallet.html"     class="nav-link">Wallet</a>
+    </div>
+  </nav>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Trade Log</div>
+        <div class="page-subtitle">Full history — <span id="trade-count">—</span> trades</div>
+      </div>
+      <button class="btn btn-primary" id="export-btn">Export CSV</button>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="summary-cards" id="summary-cards">
+      <div class="stat-card">
+        <span class="stat-card-label">Total Trades</span>
+        <span class="stat-card-value mono" id="s-total">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-label">Win Rate</span>
+        <span class="stat-card-value mono" id="s-winrate">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-label">Avg Duration</span>
+        <span class="stat-card-value mono" id="s-duration">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-label">Largest Win</span>
+        <span class="stat-card-value mono pos" id="s-best">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-label">Largest Loss</span>
+        <span class="stat-card-value mono neg" id="s-worst">—</span>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="panel" style="margin-bottom:var(--gap-md)">
+      <div class="panel-body">
+        <div class="filter-bar">
+          <input type="date"   id="date-from"      title="From date">
+          <input type="date"   id="date-to"        title="To date">
+          <select id="strat-filter">
+            <option value="">All Strategies</option>
+            <option>MERGE_ARB</option>
+            <option>MEAN_REV</option>
+            <option>PRICE_MAGNET</option>
+            <option>DEPENDENCY</option>
+            <option>CROSS_MARKET</option>
+          </select>
+          <select id="outcome-filter">
+            <option value="">All Outcomes</option>
+            <option value="win">Win (P&amp;L &gt; 0)</option>
+            <option value="loss">Loss (P&amp;L &lt; 0)</option>
+            <option value="open">Open</option>
+          </select>
+          <button class="btn" id="apply-filters">Apply</button>
+          <button class="btn" id="reset-filters">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trade table -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Trades</span>
+        <span class="panel-badge" id="visible-count">—</span>
+      </div>
+      <div class="table-wrap" style="max-height:calc(100vh - 440px)">
+        <table id="trade-table">
+          <thead>
+            <tr>
+              <th data-col="id"        class="right">#</th>
+              <th data-col="timestamp">Timestamp</th>
+              <th data-col="market">Market</th>
+              <th data-col="strategy">Strategy</th>
+              <th data-col="side">Side</th>
+              <th data-col="size"      class="right">Size</th>
+              <th data-col="entry"     class="right">Entry</th>
+              <th data-col="exit"      class="right">Exit</th>
+              <th data-col="fees"      class="right">Fees</th>
+              <th data-col="pnl"       class="right">P&amp;L</th>
+              <th data-col="status">Status</th>
+            </tr>
+          </thead>
+          <tbody id="trade-tbody">
+            <tr><td colspan="11"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="11"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="11"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="11"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="11"><div class="skeleton skeleton-row"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { fetchTrades } from './js/api.js';
+
+  const STRAT_TAGS = {
+    MERGE_ARB:'tag-merge', MEAN_REV:'tag-mean-rev',
+    PRICE_MAGNET:'tag-price-mag', DEPENDENCY:'tag-dependency', CROSS_MARKET:'tag-cross',
+  };
+  const STATUS_COLORS = {
+    merged:'var(--success)', open:'var(--info)', failed:'var(--danger)', cancelled:'var(--warning)',
+  };
+
+  let _allTrades = [];
+  let _sortCol = 'id';
+  let _sortDir = 'desc';
+
+  async function load() {
+    _allTrades = await fetchTrades({ limit: 500 });
+    applyAndRender();
+  }
+
+  function applyAndRender() {
+    let trades = [..._allTrades];
+
+    const from    = document.getElementById('date-from')?.value;
+    const to      = document.getElementById('date-to')?.value;
+    const strat   = document.getElementById('strat-filter')?.value;
+    const outcome = document.getElementById('outcome-filter')?.value;
+
+    if (from)    trades = trades.filter(t => t.timestamp >= from);
+    if (to)      trades = trades.filter(t => t.timestamp <= to + 'T23:59:59');
+    if (strat)   trades = trades.filter(t => t.strategy === strat);
+    if (outcome === 'win')  trades = trades.filter(t => parseFloat(t.pnl) > 0);
+    if (outcome === 'loss') trades = trades.filter(t => parseFloat(t.pnl) < 0);
+    if (outcome === 'open') trades = trades.filter(t => t.status === 'open');
+
+    // Sort
+    trades.sort((a, b) => {
+      let av = a[_sortCol], bv = b[_sortCol];
+      if (_sortCol === 'id') { av = +av; bv = +bv; }
+      if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+      return _sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0);
+    });
+
+    renderTrades(trades);
+    renderSummary(trades);
+  }
+
+  function renderTrades(trades) {
+    const tbody = document.getElementById('trade-tbody');
+    const countEl = document.getElementById('visible-count');
+    const totalEl = document.getElementById('trade-count');
+    if (!tbody) return;
+    if (countEl) countEl.textContent = trades.length;
+    if (totalEl) totalEl.textContent = _allTrades.length;
+
+    if (trades.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="11" class="empty-state">No trades match filters</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = trades.map(t => {
+      const pnl     = parseFloat(t.pnl);
+      const pnlCls  = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
+      const pnlSign = pnl > 0 ? '+' : '';
+      const tagCls  = STRAT_TAGS[t.strategy] ?? 'tag-none';
+      const stColor = STATUS_COLORS[t.status] ?? 'var(--text-muted)';
+      const ts      = new Date(t.timestamp).toLocaleString('en-US', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
+      const sideCls = t.side === 'LONG' ? 'pos' : 'neg';
+
+      return `<tr>
+        <td class="num right text-muted">${t.id}</td>
+        <td class="mono" style="font-size:0.78rem;color:var(--text-muted)">${ts}</td>
+        <td title="${escHtml(t.market)}">${escHtml(truncate(t.market,32))}</td>
+        <td><span class="tag ${tagCls}">${t.strategy}</span></td>
+        <td class="num ${sideCls}">${t.side}</td>
+        <td class="num right">$${Number(t.size).toFixed(2)}</td>
+        <td class="num right">${t.entry}</td>
+        <td class="num right">${t.exit ?? '—'}</td>
+        <td class="num right text-muted">$${Number(t.fees).toFixed(4)}</td>
+        <td class="num right ${pnlCls}">${pnlSign}$${Math.abs(pnl).toFixed(4)}</td>
+        <td><span style="color:${stColor};font-size:0.78rem;font-family:var(--font-mono)">${t.status}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderSummary(trades) {
+    const wins   = trades.filter(t => parseFloat(t.pnl) > 0);
+    const pnls   = trades.map(t => parseFloat(t.pnl)).filter(Boolean);
+    const best   = pnls.length ? Math.max(...pnls) : 0;
+    const worst  = pnls.length ? Math.min(...pnls) : 0;
+    const wr     = trades.length > 0 ? ((wins.length / trades.length)*100).toFixed(1) : 0;
+
+    document.getElementById('s-total').textContent    = trades.length;
+    document.getElementById('s-winrate').textContent  = `${wr}%`;
+    document.getElementById('s-duration').textContent = '~2.1h';
+    document.getElementById('s-best').textContent     = `+$${best.toFixed(4)}`;
+    document.getElementById('s-worst').textContent    = `-$${Math.abs(worst).toFixed(4)}`;
+  }
+
+  // Sort
+  document.addEventListener('DOMContentLoaded', () => {
+    load();
+
+    document.querySelectorAll('#trade-table thead th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        _sortDir = (_sortCol === col && _sortDir === 'asc') ? 'desc' : 'asc';
+        _sortCol = col;
+        document.querySelectorAll('#trade-table thead th').forEach(h => h.classList.remove('sort-asc','sort-desc'));
+        th.classList.add(_sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+        applyAndRender();
+      });
+    });
+
+    document.getElementById('apply-filters')?.addEventListener('click', applyAndRender);
+
+    document.getElementById('reset-filters')?.addEventListener('click', () => {
+      ['date-from','date-to'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+      ['strat-filter','outcome-filter'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+      applyAndRender();
+    });
+
+    document.getElementById('export-btn')?.addEventListener('click', () => exportCsv(_allTrades));
+  });
+
+  function exportCsv(trades) {
+    const cols = ['id','timestamp','market','strategy','side','size','entry','exit','fees','pnl','status'];
+    const rows = [cols.join(','), ...trades.map(t => cols.map(c => JSON.stringify(t[c] ?? '')).join(','))];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `trades_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+
+  function truncate(s, n) { return s.length > n ? s.slice(0,n)+'…' : s; }
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

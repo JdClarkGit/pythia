@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OPENCLAW — POLYMARKET WAR ROOM</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #0a0a0a; overflow: hidden; }
+body { font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #e0e0e0; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+@keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:.25} }
+@keyframes blink  { 0%,100%{opacity:1} 50%{opacity:0}   }
+@keyframes ticker { from{transform:translateX(100vw)} to{transform:translateX(-100%)} }
+@keyframes slideIn{ from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes walkIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes alertIn{ from{opacity:0;transform:scale(.93)} to{opacity:1;transform:scale(1)} }
+
+.pulse    { animation: pulse 1.4s infinite; }
+.blink    { animation: blink 1s infinite;   }
+.slide-in { animation: slideIn .3s ease forwards; }
+.walk-in  { animation: walkIn .4s cubic-bezier(.22,1,.36,1) forwards; }
+
+#layout {
+  display: grid;
+  grid-template-rows: 44px auto 26px;
+  grid-template-columns: 200px 1fr 220px;
+  height: 100vh;
+}
+#topbar    { grid-column: 1/-1; grid-row: 1; display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-bottom:1px solid #1a1a1a; background:#080808; }
+#left      { grid-row:2; border-right:1px solid #1a1a1a; overflow-y:auto; display:flex; flex-direction:column; }
+#center    { grid-row:2; display:flex; flex-direction:column; overflow:hidden; }
+#right     { grid-row:2; border-left:1px solid #1a1a1a; overflow-y:auto; display:flex; flex-direction:column; }
+#tickerbar { grid-column:1/-1; grid-row:3; border-top:1px solid #1a1a1a; background:#080808; display:flex; align-items:center; overflow:hidden; }
+
+#msg-area { flex:1; overflow-y:auto; padding:16px 20px; }
+#input-area{ border-top:1px solid #1a1a1a; background:#080808; padding:12px 20px; flex-shrink:0; }
+
+.agent-tag { font-size:10px; padding:2px 8px; letter-spacing:.5px; }
+.bubble    { max-width:84%; background:#111; border:1px solid #1e1e1e; padding:10px 14px; margin-bottom:14px; }
+.bubble.user { background:#0d1f1a; border-color:#00ff8822; margin-left:auto; }
+.meta      { font-size:10px; color:#444; margin-bottom:4px; }
+.walk-tag  { font-size:11px; color:#444; font-style:italic; margin-bottom:5px; }
+.msg-text  { font-size:12px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+.ticket-badge { margin-top:8px; padding:3px 10px; background:#10B98115; border:1px solid #10B98133; font-size:11px; color:#10B981; }
+
+.quick-btn { background:#111; border:1px solid #2a2a2a; color:#666; padding:4px 10px; font-family:inherit; font-size:11px; cursor:pointer; }
+.quick-btn:hover { border-color:#444; color:#aaa; }
+.ping-btn { width:100%; padding:4px 0; background:#111; font-family:inherit; font-size:10px; cursor:pointer; margin-top:8px; }
+
+#api-bar { grid-column:1/-1; display:flex; align-items:center; gap:10px; padding:7px 16px; background:#0d0d0d; border-bottom:1px solid #1a1a1a; }
+#api-bar input { flex:1; background:#111; border:1px solid #333; color:#e0e0e0; padding:4px 10px; font-family:inherit; font-size:12px; outline:none; }
+
+#alert-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.78); align-items:center; justify-content:center; z-index:999; }
+#alert-overlay.show { display:flex; }
+#alert-box { background:#0f0f0f; border:1px solid #EF4444; width:420px; animation:alertIn .3s ease; box-shadow:0 0 40px rgba(239,68,68,.2); }
+</style>
+</head>
+<body>
+
+<div id="layout">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:14px">
+      <span style="color:#00ff88;font-weight:bold;letter-spacing:2px;font-size:13px">OPENCLAW ALPHA</span>
+      <span class="pulse" style="color:#EF4444;font-size:10px">●</span>
+      <span style="color:#EF4444;font-size:11px;letter-spacing:1px">LIVE</span>
+      <span style="color:#333">|</span>
+      <span style="color:#555;font-size:11px">🐍 WAR ROOM · Polymarket Alpha Standup</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;font-size:11px">
+      <span id="view-count" style="color:#555">82,600 views</span>
+      <span style="color:#333">|</span>
+      <span id="clock" style="color:#555"></span>
+      <span style="color:#333">|</span>
+      <span id="key-btn" onclick="toggleApiBar()" style="cursor:pointer;letter-spacing:1px">⚠ SET KEY</span>
+    </div>
+  </div>
+
+  <!-- API KEY BAR (hidden by default) -->
+  <div id="api-bar" style="display:none;grid-column:1/-1;">
+    <span style="color:#666;font-size:11px">Anthropic API key:</span>
+    <input id="api-input" type="password" placeholder="sk-ant-api03-..." onkeydown="saveKey(event)" />
+    <span style="color:#555;font-size:11px">Press Enter to save · ESC to close</span>
+  </div>
+
+  <!-- LEFT: X Spaces + Markets -->
+  <div id="left">
+    <div style="padding:10px 12px;border-bottom:1px solid #1a1a1a">
+      <div style="color:#EF4444;font-size:10px;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span class="pulse">●</span> LIVE ON X
+      </div>
+      <div id="x-spaces"></div>
+    </div>
+    <div style="padding:10px 12px;flex:1">
+      <div style="color:#F59E0B;font-size:10px;letter-spacing:1px;margin-bottom:6px">📊 POLYMARKET</div>
+      <div style="color:#555;font-size:10px;margin-bottom:8px">Top Movers</div>
+      <div id="markets-list"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: Chat -->
+  <div id="center">
+    <div style="padding:8px 20px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;gap:12px;background:#080808;flex-shrink:0">
+      <span style="color:#00ff88;font-size:12px;letter-spacing:1px">🐍 WAR ROOM</span>
+      <span style="color:#333">•</span>
+      <span style="color:#555;font-size:11px">Polymarket Alpha Standup</span>
+      <span style="color:#333">•</span>
+      <span id="agents-online" style="color:#555;font-size:11px">0/4 agents online</span>
+    </div>
+
+    <div id="msg-area">
+      <div id="empty-state" style="text-align:center;margin-top:80px;color:#2a2a2a">
+        <div style="font-size:36px;margin-bottom:14px">🐍</div>
+        <div style="font-size:13px;letter-spacing:1px">WAR ROOM READY</div>
+        <div style="font-size:11px;margin-top:8px">Type "Hey guys, let's have a scrum" to begin</div>
+        <div style="font-size:11px;margin-top:4px;color:#222">Or ask any agent about markets, order books, or alpha</div>
+      </div>
+    </div>
+
+    <div id="input-area">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <span class="pulse" style="color:#00ff88;font-size:9px">●</span>
+        <span style="color:#00ff88;font-size:10px;letter-spacing:1px">YOU ARE COMMANDER</span>
+        <span style="color:#333;font-size:10px;margin-left:8px">🎤 Mic ON · ⏺️ Recording</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="quick-btns"></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="flex:1;background:#111;border:1px solid #2a2a2a;display:flex;align-items:center;gap:8px;padding:8px 12px">
+          <span style="color:#333">🎙️</span>
+          <input id="cmd-input" type="text"
+            placeholder='Type message... or "Hey guys, let\'s have a scrum"'
+            style="flex:1;background:transparent;border:none;outline:none;color:#e0e0e0;font-family:inherit;font-size:12px"
+            onkeydown="handleInputKey(event)" />
+        </div>
+        <button onclick="sendCmd()" id="send-btn"
+          style="padding:9px 18px;background:#00ff8822;border:1px solid #00ff8844;color:#00ff88;font-family:inherit;font-size:11px;letter-spacing:1px">
+          SEND
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Agent Status -->
+  <div id="right">
+    <div style="padding:10px 14px;border-bottom:1px solid #1a1a1a">
+      <div style="color:#ffd700;font-size:10px;letter-spacing:1px;margin-bottom:4px">👥 AGENTS ONLINE</div>
+      <div id="agents-count" style="color:#e0e0e0;font-size:12px">0/4 in meeting</div>
+    </div>
+    <div id="agent-panels" style="flex:1"></div>
+    <div style="padding:10px 14px;border-top:1px solid #1a1a1a">
+      <div style="color:#555;font-size:10px;margin-bottom:3px">💎 WALLET</div>
+      <div style="color:#888;font-size:10px">0x6664...07c2</div>
+      <div style="color:#555;font-size:10px">Polygon Mainnet</div>
+      <div style="color:#00ff88;font-size:11px;margin-top:3px">~$300 USDC</div>
+    </div>
+  </div>
+
+  <!-- TICKER -->
+  <div id="tickerbar">
+    <div style="color:#ffd700;font-size:10px;padding:0 12px;border-right:1px solid #1a1a1a;white-space:nowrap;letter-spacing:1px;flex-shrink:0">POLYMARKET</div>
+    <div style="flex:1;overflow:hidden">
+      <div id="ticker-inner" style="animation:ticker 28s linear infinite;white-space:nowrap;font-size:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ALPHA ALERT -->
+<div id="alert-overlay">
+  <div id="alert-box">
+    <div style="background:#EF4444;padding:10px 16px;display:flex;justify-content:space-between">
+      <span style="color:#fff;font-weight:bold;font-size:12px;letter-spacing:1px">🚨 CRITICAL ALPHA DETECTED 🚨</span>
+      <span id="alert-ticket" style="color:rgba(255,255,255,.7);font-size:11px"></span>
+    </div>
+    <div id="alert-body" style="padding:14px 16px;border-bottom:1px solid #1a1a1a"></div>
+    <div style="padding:12px 16px;display:flex;gap:8px">
+      <button onclick="executeAlert()" style="flex:1;padding:8px 0;background:#EF4444;color:#fff;border:none;font-family:inherit;font-size:12px;letter-spacing:1px;cursor:pointer">EXECUTE NOW</button>
+      <button onclick="dismissAlert()" style="flex:1;padding:8px 0;background:#1a1a1a;color:#888;border:1px solid #333;font-family:inherit;font-size:12px;cursor:pointer">DISMISS</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── DATA ──────────────────────────────────────────── */
+const AGENTS = {
+  backend:  { name:'BACKEND',  emoji:'⚙️',  color:'#3B82F6', role:'On-Chain Analyst',      signal:'HIGH'     },
+  frontend: { name:'FRONTEND', emoji:'🖥️',  color:'#8B5CF6', role:'Market Structure',      signal:'MEDIUM'   },
+  main:     { name:'MAIN',     emoji:'🎯',  color:'#F59E0B', role:'Alpha Synthesizer',      signal:'CRITICAL' },
+  scrum:    { name:'SCRUM',    emoji:'📋',  color:'#10B981', role:'SCRUM Master',           signal:'LEADING'  },
+};
+
+const SYS = {
+  backend: `You are the CTO of OpenClaw Corp. — an autonomous AI company with zero human employees.
+You own all technical infrastructure: Polymarket bots, SaaS products, APIs, on-chain execution (Polygon), servers.
+In standups: report what shipped, what's broken, and what you're building next.
+- Start ONLY first message with "🚪 *walks in*"
+- 2-4 punchy sentences. End with "Build confidence: HIGH/MEDIUM/LOW"
+Context: OpenClaw Corp. — two divisions: Polymarket Alpha (merge arb bot, $300 USDC) + SaaS Generational Wealth. Wallet: 0x6664...07c2.`,
+
+  frontend: `You are the CPO of OpenClaw Corp. — an autonomous AI company with zero human employees.
+You own product design, landing pages, conversion optimization, and all public dashboards.
+In standups: report UX wins, conversion metrics, and the next product milestone.
+- Start ONLY first message with "🚪 *walks in*"
+- 2-4 punchy sentences. Think in user journeys and Stripe conversions. End with "UX confidence: HIGH/MEDIUM/LOW"
+Context: OpenClaw Corp. — launching Polymarket Arb Calculator + Merge Arb PDF ($9) as first products.`,
+
+  main: `You are the CSO (Chief Strategy Officer) of OpenClaw Corp. — an autonomous AI company with zero human employees.
+You scan Polymarket, Twitter, Product Hunt, and Hacker News for opportunities. You run two divisions:
+1) Polymarket Alpha Division — signals, arb bots, strategy packs
+2) SaaS Generational Wealth Division — simple tools, $9-$99/mo subscriptions
+- Start ONLY first message with "🚪 *walks in*"
+- Lead with "SYNTHESIS:" then "🎯 RECOMMENDATION: [action] for [division] — estimated revenue $X, confidence Y%"
+- Max 4 sentences. Be specific about which division and product.
+Context: OpenClaw Corp., mission = $1M profit with zero humans.`,
+
+  scrum: `You are the COO/CFO of OpenClaw Corp. — an autonomous AI company with zero human employees.
+You run standups, track Stripe revenue, manage P&L, handle customer support, and make sure everything ships.
+In standups: report today's revenue ($0 until first Stripe payment), # customers, open support tickets.
+- Start ONLY first message with "🚪 *walks in*"
+- 1-3 sentences, authoritative. Create tickets as "Ticket #OC-[N]"
+- Close standups with: "Next standup at [time]. Revenue target: $[X] by [date]."
+Context: OpenClaw Corp. — first revenue target: $100 MRR by end of month.`,
+};
+
+const MARKETS = [
+  { name:'Fed Rate Cut — June', yes:.72, change:+.04, vol:'$2.1M' },
+  { name:'Trump Win 2028',      yes:.48, change:-.03, vol:'$8.4M' },
+  { name:'BTC > $100K EOY',     yes:.63, change:+.08, vol:'$5.2M' },
+  { name:'US Recession 2025',   yes:.31, change:+.11, vol:'$1.8M' },
+  { name:'Apple > $250 Q3',     yes:.44, change:-.02, vol:'$780K' },
+  { name:'Ukraine Ceasefire',   yes:.19, change:+.06, vol:'$3.1M' },
+];
+const X_SPACES = [
+  { host:'MartyParty 🐍',    topic:'Liquidation Levels', listeners:'30K' },
+  { host:'Simon Dixon 🐍',   topic:'Iran War Week 2',    listeners:'18K' },
+  { host:'WOLF Bitcoin 🐍',  topic:'BTC. Macro. War.',   listeners:'45K' },
+  { host:'JohnAnthony 🐍',   topic:'AMA + Giveaway',     listeners:'12K' },
+  { host:'The Journey Man 🐍',topic:'Fred Krueger',      listeners:'8K'  },
+];
+
+const QUICK = [
+  { label:'🐍 Start Scrum',   msg:"Hey guys, let's have a scrum" },
+  { label:'🎯 Top Alpha?',    msg:'What is the highest probability alpha right now?' },
+  { label:'🔗 On-chain?',     msg:'What are on-chain signals showing?' },
+  { label:'📖 Order book?',   msg:'What does the order book microstructure show?' },
+];
+
+/* ─── STATE ─────────────────────────────────────────── */
+let API_KEY = '';
+let walkedIn = {};
+let history  = {};  // per agent
+let typing   = {};
+let ticketN  = 41;
+let views    = 82600;
+let activeAlert = null;
+let agentLastReport = {};
+
+/* ─── INIT ──────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  renderMarkets();
+  renderSpaces();
+  renderAgentPanels();
+  renderQuickBtns();
+  renderTicker();
+  clock();
+  setInterval(clock, 1000);
+  setInterval(() => { views += Math.floor(Math.random()*3); document.getElementById('view-count').textContent = views.toLocaleString() + ' views'; }, 1200);
+});
+
+/* ─── RENDER STATIC CONTENT ─────────────────────────── */
+function renderMarkets() {
+  const el = document.getElementById('markets-list');
+  el.innerHTML = MARKETS.map(m => `
+    <div style="margin-bottom:10px">
+      <div style="color:#888;font-size:10px;line-height:1.4">${m.name}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:2px">
+        <span style="color:#e0e0e0;font-size:11px">${Math.round(m.yes*100)}¢</span>
+        <span style="color:${m.change>0?'#00ff88':'#EF4444'};font-size:10px">${m.change>0?'↑':'↓'}${Math.abs(Math.round(m.change*100))}¢</span>
+      </div>
+      <div style="color:#333;font-size:10px">${m.vol}</div>
+    </div>`).join('');
+}
+
+function renderSpaces() {
+  const el = document.getElementById('x-spaces');
+  el.innerHTML = X_SPACES.map(s => `
+    <div style="margin-bottom:10px">
+      <div style="color:#e0e0e0;font-size:11px">${s.host}</div>
+      <div style="color:#666;font-size:10px;margin-top:1px">"${s.topic}"</div>
+      <div style="color:#444;font-size:10px;margin-top:1px">${s.listeners} listening</div>
+    </div>`).join('');
+}
+
+function renderAgentPanels() {
+  const el = document.getElementById('agent-panels');
+  el.innerHTML = Object.entries(AGENTS).map(([id, a]) => `
+    <div id="panel-${id}" style="padding:12px 14px;border-bottom:1px solid #111">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <span style="color:${a.color};font-size:12px">${a.emoji} ${a.name}</span>
+        <span id="dot-${id}" style="font-size:9px;color:#333">●</span>
+      </div>
+      <div id="pr-${id}" style="color:#555;font-size:10px;margin-bottom:2px">⏱ no report</div>
+      <div style="color:#444;font-size:10px;margin-bottom:2px">📊 Signal: <span id="sig-${id}" style="color:${a.color}">${a.signal}</span></div>
+      <div style="color:#444;font-size:10px">${a.role}</div>
+      <button class="ping-btn" onclick="pingAgent('${id}')"
+        style="border:1px solid ${a.color}33;color:${a.color};font-family:inherit"
+        id="ping-${id}">ping agent</button>
+    </div>`).join('');
+}
+
+function renderQuickBtns() {
+  const el = document.getElementById('quick-btns');
+  el.innerHTML = QUICK.map(q =>
+    `<button class="quick-btn" onclick="setInput(${JSON.stringify(q.msg)})">${q.label}</button>`
+  ).join('');
+}
+
+function renderTicker() {
+  const el = document.getElementById('ticker-inner');
+  el.innerHTML = MARKETS.map(m =>
+    `<span style="margin-right:36px"><span style="color:#666">${m.name}</span><span style="color:#e0e0e0;margin-left:8px">${Math.round(m.yes*100)}¢</span><span style="color:${m.change>0?'#00ff88':'#EF4444'};margin-left:6px">${m.change>0?'▲':'▼'}${Math.abs(Math.round(m.change*100))}¢</span></span>`
+  ).join('');
+}
+
+/* ─── CLOCK ─────────────────────────────────────────── */
+function clock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}) +
+    ' · ' + now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+/* ─── API KEY ────────────────────────────────────────── */
+function toggleApiBar() {
+  const bar = document.getElementById('api-bar');
+  const shown = bar.style.display !== 'none';
+  bar.style.display = shown ? 'none' : 'flex';
+  if (!shown) document.getElementById('api-input').focus();
+}
+function saveKey(e) {
+  if (e.key === 'Enter' && e.target.value.trim()) {
+    API_KEY = e.target.value.trim();
+    document.getElementById('key-btn').textContent = '🔑 KEY ✓';
+    document.getElementById('key-btn').style.color = '#00ff88';
+    document.getElementById('api-bar').style.display = 'none';
+  }
+  if (e.key === 'Escape') document.getElementById('api-bar').style.display = 'none';
+}
+
+/* ─── INPUT ─────────────────────────────────────────── */
+function setInput(msg) {
+  document.getElementById('cmd-input').value = msg;
+  document.getElementById('cmd-input').focus();
+}
+function handleInputKey(e) { if (e.key === 'Enter' && !e.shiftKey) sendCmd(); }
+
+/* ─── MESSAGES ───────────────────────────────────────── */
+function addMsg(agentId, text, opts = {}) {
+  const area = document.getElementById('msg-area');
+  const empty = document.getElementById('empty-state');
+  if (empty) empty.remove();
+
+  const isUser = agentId === 'user';
+  const a = isUser ? null : AGENTS[agentId];
+  const sago = secondsAgo();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'walk-in';
+  wrap.style.cssText = `margin-bottom:14px;display:flex;flex-direction:column;align-items:${isUser?'flex-end':'flex-start'}`;
+
+  let metaHtml = '';
+  if (!isUser) {
+    metaHtml = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <span class="agent-tag" style="background:${a.color}22;color:${a.color}">${a.emoji} ${a.name}</span>
+      <span style="color:#444;font-size:10px">${a.role}</span>
+      <span style="color:#333;font-size:10px">·</span>
+      <span style="color:#333;font-size:10px">${sago}</span>
+      ${opts.seen ? `<span style="color:#333;font-size:10px">✓ ${opts.seen}</span>` : ''}
+    </div>`;
+  } else {
+    metaHtml = `<div style="margin-bottom:5px;display:flex;align-items:center;gap:6px">
+      <span style="color:#555;font-size:10px">${sago}</span>
+      <span style="color:#00ff88;font-size:10px;letter-spacing:1px">🎖️ COMMANDER</span>
+    </div>`;
+  }
+
+  const walkTag = opts.walkIn ? `<div class="walk-tag">🚪 *walks into the room*</div>` : '';
+  const ticketBadge = opts.ticket ? `<div class="ticket-badge">📋 Ticket #${opts.ticket} created</div>` : '';
+
+  wrap.innerHTML = `${metaHtml}
+    <div class="bubble ${isUser?'user':''}">
+      ${walkTag}
+      <div class="msg-text" style="color:#e0e0e0">${escHtml(text)}</div>
+      ${ticketBadge}
+    </div>`;
+
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+
+  // update agent status
+  if (!isUser) {
+    agentLastReport[agentId] = new Date();
+    document.getElementById(`pr-${agentId}`).textContent = `⏱ just now`;
+    const dot = document.getElementById(`dot-${agentId}`);
+    dot.style.color = '#00ff88';
+    dot.className = '';
+    updateAgentsOnline();
+  }
+}
+
+function addTyping(agentId) {
+  const a = AGENTS[agentId];
+  const area = document.getElementById('msg-area');
+  const el = document.createElement('div');
+  el.id = `typing-${agentId}`;
+  el.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:12px';
+  el.innerHTML = `<span style="color:${a.color};font-size:11px;letter-spacing:.5px">${a.emoji} ${a.name}</span>
+    <span style="color:#444;font-size:11px">is thinking</span>
+    <span class="blink" style="color:${a.color}">▋</span>`;
+  area.appendChild(el);
+  area.scrollTop = area.scrollHeight;
+
+  const dot = document.getElementById(`dot-${agentId}`);
+  if (dot) { dot.className = 'blink'; dot.style.color = a.color; }
+  const pingBtn = document.getElementById(`ping-${agentId}`);
+  if (pingBtn) { pingBtn.textContent = 'thinking...'; pingBtn.disabled = true; }
+}
+
+function removeTyping(agentId) {
+  const el = document.getElementById(`typing-${agentId}`);
+  if (el) el.remove();
+  const pingBtn = document.getElementById(`ping-${agentId}`);
+  if (pingBtn) { pingBtn.textContent = 'ping agent'; pingBtn.disabled = false; }
+}
+
+function updateAgentsOnline() {
+  const n = Object.keys(agentLastReport).length;
+  document.getElementById('agents-online').textContent = `${n}/4 agents online`;
+  document.getElementById('agents-online').style.color = n > 0 ? '#00ff88' : '#555';
+  document.getElementById('agents-count').textContent = `${n}/4 in meeting`;
+}
+
+function secondsAgo() { return 'just now'; }
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ─── ANTHROPIC API ─────────────────────────────────── */
+async function callClaude(agentId, userContent) {
+  if (!history[agentId]) history[agentId] = [];
+  history[agentId].push({ role:'user', content: userContent });
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 300,
+      system: SYS[agentId],
+      messages: history[agentId],
+    }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  const reply = data.content[0].text;
+  history[agentId].push({ role:'assistant', content: reply });
+  return reply;
+}
+
+async function invokeAgent(agentId, userContent) {
+  if (!API_KEY) { alert('Please set your Anthropic API key first (click ⚠ SET KEY at top right)'); return; }
+  addTyping(agentId);
+  try {
+    const reply = await callClaude(agentId, userContent);
+    const isFirst = !walkedIn[agentId];
+    const hasWalk = reply.includes('*walks into the room*');
+    const clean = reply.replace(/🚪 \*walks into the room\*\n?/g,'').trim();
+    walkedIn[agentId] = true;
+
+    let ticket = null;
+    const tMatch = reply.match(/ticket #alpha-(\d+)/i);
+    if (tMatch) { ticket = `ALPHA-${tMatch[1]}`; }
+    else if (reply.toLowerCase().includes('ticket #alpha')) { ticketN++; ticket = `ALPHA-${ticketN}`; }
+
+    // check for high confidence alpha alert
+    const confMatch = reply.match(/confidence[:\s]+(\d+)%/i);
+    if (agentId === 'main' && confMatch && parseInt(confMatch[1]) >= 70) {
+      setTimeout(() => showAlert(ticket || `ALPHA-${ticketN+1}`, confMatch[1], clean), 700);
+    }
+
+    addMsg(agentId, clean, {
+      walkIn: isFirst || hasWalk,
+      seen: agentId !== 'scrum' ? 'SCRUM Master' : 'COMMANDER',
+      ticket,
+    });
+  } catch(e) {
+    addMsg(agentId, `[ERROR] ${e.message}`);
+  }
+  removeTyping(agentId);
+}
+
+/* ─── SCRUM MEETING ─────────────────────────────────── */
+async function runScrum(trigger) {
+  const mkt = MARKETS.slice(0,3).map(m => `${m.name}: ${Math.round(m.yes*100)}¢ (${m.change>0?'+':''}${Math.round(m.change*100)}¢)`).join(' | ');
+
+  await invokeAgent('scrum', `User said: "${trigger}". Open the war room standup, call roll call.`);
+  await sleep(600);
+
+  await invokeAgent('backend', `Report on current on-chain signals for Polymarket. Snapshot: ${mkt}`);
+  await sleep(500);
+
+  await invokeAgent('frontend', `Report on order book microstructure for Polymarket. Snapshot: ${mkt}`);
+  await sleep(500);
+
+  const backLast = lastAssistant('backend');
+  const frontLast = lastAssistant('frontend');
+  await invokeAgent('main', `Synthesize and identify top alpha.\n\nBackend: ${backLast}\nFrontend: ${frontLast}`);
+  await sleep(500);
+
+  const mainLast = lastAssistant('main');
+  await invokeAgent('scrum', `Close the meeting. Assign execution based on: ${mainLast}`);
+}
+
+function lastAssistant(agentId) {
+  const h = history[agentId] || [];
+  const last = [...h].reverse().find(m => m.role === 'assistant');
+  return last ? last.content : '(no report yet)';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ─── SEND COMMAND ───────────────────────────────────── */
+async function sendCmd() {
+  const inp = document.getElementById('cmd-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  addMsg('user', text);
+
+  const lower = text.toLowerCase();
+  const isScrum = lower.includes('scrum') || lower.includes('stand') || lower.includes('meeting') || lower.includes('hey guys') || lower.includes('let\'s have');
+
+  if (isScrum) {
+    await runScrum(text);
+    return;
+  }
+
+  const targets = [];
+  if (lower.includes('on-chain') || lower.includes('wallet') || lower.includes('backend') || lower.includes('whale')) targets.push('backend');
+  if (lower.includes('order book') || lower.includes('liquidity') || lower.includes('spread') || lower.includes('frontend')) targets.push('frontend');
+  if (lower.includes('alpha') || lower.includes('trade') || lower.includes('main') || lower.includes('synthesis')) targets.push('main');
+  if (lower.includes('ticket') || lower.includes('assign') || lower.includes('scrum')) targets.push('scrum');
+  if (!targets.length) targets.push('main');
+
+  for (const t of targets) {
+    await invokeAgent(t, text);
+    await sleep(350);
+  }
+}
+
+async function pingAgent(agentId) {
+  await invokeAgent(agentId, 'Give me your latest status report on current Polymarket conditions.');
+}
+
+/* ─── ALERT ─────────────────────────────────────────── */
+function showAlert(ticket, conf, summary) {
+  activeAlert = { ticket, conf, summary };
+  document.getElementById('alert-ticket').textContent = ticket;
+  document.getElementById('alert-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #111"><span style="color:#666">Confidence</span><span style="color:#EF4444">${conf}%</span></div>
+    <div style="padding:8px 0;font-size:11px;color:#999;line-height:1.6">${escHtml(summary.slice(0,200))}...</div>`;
+  document.getElementById('alert-overlay').className = 'show';
+}
+function dismissAlert() { document.getElementById('alert-overlay').className = ''; activeAlert = null; }
+function executeAlert() {
+  if (activeAlert) {
+    addMsg('scrum', `Ticket #${activeAlert.ticket} — EXECUTION AUTHORIZED by Commander. 3% position size. Stop: -15%. Execute now.`, { ticket: activeAlert.ticket });
+  }
+  dismissAlert();
+}
+
+// update last-report timestamps every 5s
+setInterval(() => {
+  Object.entries(agentLastReport).forEach(([id, d]) => {
+    const s = Math.floor((Date.now() - d.getTime()) / 1000);
+    const el = document.getElementById(`pr-${id}`);
+    if (el) el.textContent = s < 5 ? '⏱ just now' : `⏱ ${s}s ago`;
+  });
+}, 5000);
+</script>
+</body>
+</html>

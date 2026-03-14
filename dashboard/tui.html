@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>openclaw tui</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0a0a0a; }
+    body { font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #e0e0e0; }
+    ::-webkit-scrollbar { width: 6px; } 
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+    .blink { animation: blink 1.4s infinite; }
+    input { font-family: 'Courier New', Courier, monospace; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ── constants ─────────────────────────────────────────────────── */
+const AGENTS = [
+  {
+    icon: '💡', role: 'Boss', session: '(me)',
+    task: 'Synthesize research, coordinate, review',
+    status: 'Active', statusColor: '#00ff88', clickable: false,
+    systemPrompt: '',
+  },
+  {
+    icon: '⚙️', role: 'Backend Dev', session: 'warm-haven',
+    task: 'Mean reversion, price magnets, microstructure, enhanced Kelly, dependency detection',
+    status: 'Running', statusColor: '#ffd700', clickable: true,
+    systemPrompt: `You are an expert Rust/Python quant developer building Polymarket trading strategies for the agnostic_mechanical_arb_bot project.
+You specialize in: merge arbitrage on Polymarket CTF contracts, mean reversion at extreme odds (90c/10c), price magnet strategies (75c/25c→50c), order book microstructure signals (imbalance, VWAP, signed flow), enhanced Kelly criterion with execution probability, and cross-market dependency detection using LP.
+Be concise, technical, and direct. Reference the codebase structure when relevant.`,
+  },
+  {
+    icon: '🖥️', role: 'Frontend Dev', session: 'sharp-lobster',
+    task: '5-page dashboard — live scanner, equity curve, positions, P&L',
+    status: 'Running', statusColor: '#ffd700', clickable: true,
+    systemPrompt: `You are an expert frontend engineer building trading dashboards for the agnostic_mechanical_arb_bot Polymarket arbitrage system.
+You specialize in real-time data visualization, Chart.js, terminal-aesthetic UIs, vanilla JS/HTML dashboards, and Polymarket API integration.
+Be concise, technical, and direct. Focus on what's already been built and what remains.`,
+  },
+  {
+    icon: '📋', role: 'SCRUM', session: '(me)',
+    task: 'Sprint: base build ✅ → advanced strategies → dashboard → ML layer → live test',
+    status: 'Active', statusColor: '#00ff88', clickable: false,
+    systemPrompt: '',
+  },
+];
+
+const SPRINT_INIT = {
+  s1: [
+    { id: 's1-1', text: 'Base codebase — 49 files, 7,237 lines Python + Rust', done: true },
+    { id: 's1-2', text: 'Merge arb scanner + maker strategy (zero fees)', done: true },
+    { id: 's1-3', text: 'Rust CTF merge executor (on-chain)', done: true },
+    { id: 's1-4', text: 'Capital management + SQLite logging', done: true },
+  ],
+  s2: [
+    { id: 's2-1', text: 'Mean reversion 90c/10c strategy (498 lines)', done: true },
+    { id: 's2-2', text: 'Price magnet 75c/25c strategy (502 lines)', done: true },
+    { id: 's2-3', text: 'Microstructure signals — OB imbalance, VWAP, signed flow (445 lines)', done: true },
+    { id: 's2-4', text: 'Enhanced Kelly with execution probability (195 lines)', done: true },
+    { id: 's2-5', text: 'Dependency detection — LP-based cross-market (386 lines)', done: true },
+    { id: 's2-6', text: '5-page dashboard HTML scaffold', done: true },
+    { id: 's2-7', text: 'REST API endpoints in main.py', done: false },
+    { id: 's2-8', text: 'Dashboard JS — live polling, Chart.js equity curve', done: false },
+    { id: 's2-9', text: 'TUI — this file', done: true },
+  ],
+  s3: [
+    { id: 's3-1', text: 'ML direction layer (XGBoost + LSTM, 38 features)', done: false },
+    { id: 's3-2', text: 'Monte Carlo dropout uncertainty quantification', done: false },
+    { id: 's3-3', text: 'Cross-market Frank-Wolfe optimization (scipy LP)', done: false },
+    { id: 's3-4', text: 'Live backtesting harness on 400M+ trade dataset', done: false },
+    { id: 's3-5', text: 'Fund wallet + paper trade validation', done: false },
+    { id: 's3-6', text: 'Go live on Polygon mainnet', done: false },
+  ],
+};
+
+const EDGES = [
+  { label: 'Edge 1 — 90c/10c Mean Reversion', apy: '1,372% theoretical APY', color: '#00ff88', items: [
+    '41% of markets exhibit mispricing at extremes',
+    'After touching extreme odds, 19% reverse hard (800–500% gains)',
+    'mocamoca: $45K/2mo | planktonXD: $99K/3mo',
+    'Strategy: limit orders at 3–15c, exits at 87–93c',
+  ]},
+  { label: 'Edge 2 — Price Magnets at 75c/25c', apy: '2,190% theoretical APY', color: '#4af',  items: [
+    'Prices cluster at 0c, 25c, 50c, 75c, 100c statistically',
+    '54% revert to 50c after touching 75c/25c zone',
+    '~32hr avg hold time per cycle',
+    'Strategy: buy opposite side at zone, target 50c',
+  ]},
+  { label: 'Edge 3 — Merge Arb (YES+NO < $1.00)', apy: '200–500% cycle APY', color: '#fa0', items: [
+    'Non-crypto markets: ZERO fees — any gap is profit',
+    'Buy YES + NO, call CTF mergePositions() immediately',
+    'No waiting for resolution — instant USDC return',
+    'Maker orders = zero fees + daily USDC rebates',
+  ]},
+];
+
+/* ── chat panel ────────────────────────────────────────────────── */
+function ChatPanel({ agent, onClose, apiKey, setApiKey }) {
+  const [history, setHistory] = useState([{
+    role: 'assistant',
+    content: `${agent.icon} ${agent.role} online — session: \`${agent.session}\`\n\nHow can I help?`,
+  }]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [history]);
+  useEffect(() => {
+    inputRef.current?.focus();
+    const esc = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [onClose]);
+
+  const send = useCallback(async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = { role: 'user', content: input.trim() };
+    const next = [...history, userMsg];
+    setHistory(next);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const apiMessages = next
+        .filter((m, i) => !(i === 0 && m.role === 'assistant'))
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-opus-4-5',
+          max_tokens: 1024,
+          system: agent.systemPrompt,
+          messages: apiMessages.length ? apiMessages : [userMsg],
+        }),
+      });
+      const data = await res.json();
+      const reply = data?.content?.[0]?.text ?? `[API error] ${JSON.stringify(data?.error ?? data)}`;
+      setHistory(prev => [...prev, { role: 'assistant', content: reply }]);
+    } catch (e) {
+      setHistory(prev => [...prev, { role: 'assistant', content: `[ERROR] ${e.message}` }]);
+    }
+    setLoading(false);
+  }, [input, loading, history, apiKey, agent]);
+
+  return (
+    <div style={{
+      position: 'fixed', right: 0, top: 0, bottom: 0, width: 420,
+      background: '#080808', borderLeft: '1px solid #2a2a2a',
+      display: 'flex', flexDirection: 'column', zIndex: 200,
+    }}>
+      {/* header */}
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid #2a2a2a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: '#00ff88', fontSize: 12, letterSpacing: 1 }}>
+          {agent.icon} {agent.role.toUpperCase()} — {agent.session}
+        </span>
+        <span onClick={onClose} style={{ color: '#555', cursor: 'pointer', fontSize: 12 }}>[ESC / X]</span>
+      </div>
+
+      {/* api key row */}
+      {!apiKey && (
+        <div style={{ padding: '6px 14px', borderBottom: '1px solid #1a1a1a', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ color: '#f55', fontSize: 11 }}>⚠ API KEY:</span>
+          <input
+            type="password"
+            placeholder="sk-ant-..."
+            onBlur={e => setApiKey(e.target.value)}
+            style={{ flex: 1, background: 'transparent', border: '1px solid #333', color: '#e0e0e0', fontSize: 11, padding: '2px 6px', outline: 'none' }}
+          />
+        </div>
+      )}
+
+      {/* messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {history.map((m, i) => (
+          <div key={i}>
+            <div style={{ color: m.role === 'user' ? '#4af' : '#555', fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>
+              {m.role === 'user' ? '> YOU' : `> ${agent.role.toUpperCase()}`}
+            </div>
+            <div style={{ color: m.role === 'user' ? '#e0e0e0' : '#bbb', fontSize: 12, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {m.content}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ color: '#555', fontSize: 12 }}>
+            {'> '}<span className="blink">▋</span>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* input */}
+      <div style={{ padding: '10px 14px', borderTop: '1px solid #2a2a2a', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ color: '#555' }}>{'>'}</span>
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+          placeholder="message agent... (Enter)"
+          disabled={loading}
+          style={{
+            flex: 1, background: 'transparent', border: 'none', outline: 'none',
+            color: '#e0e0e0', fontSize: 12,
+          }}
+        />
+        <span style={{ color: loading ? '#333' : '#555', fontSize: 11, cursor: 'pointer' }} onClick={send}>[SEND]</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── main app ──────────────────────────────────────────────────── */
+function App() {
+  const [sprints, setSprints] = useState(SPRINT_INIT);
+  const [activeAgent, setActiveAgent] = useState(null);
+  const [apiKey, setApiKey] = useState('');
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const toggleItem = (sprint, id) => {
+    setSprints(prev => ({
+      ...prev,
+      [sprint]: prev[sprint].map(item => item.id === id ? { ...item, done: !item.done } : item),
+    }));
+  };
+
+  const doneCount = (key) => sprints[key].filter(i => i.done).length;
+  const totalCount = (key) => sprints[key].length;
+
+  const mainPad = activeAgent ? 452 : 32;
+
+  /* ── ASCII table helpers ── */
+  const sep = (n = 110) => <div style={{ color: '#2a2a2a' }}>{'─'.repeat(n)}</div>;
+  const thickSep = (n = 110) => <div style={{ color: '#333' }}>{'═'.repeat(n)}</div>;
+
+  const colW = [18, 16, 58, 14];
+  const pad = (s, n) => { const str = String(s ?? ''); return str + ' '.repeat(Math.max(0, n - str.length)); };
+
+  return (
+    <div style={{
+      background: '#0a0a0a', minHeight: '100vh', padding: `18px 32px 40px`,
+      paddingRight: mainPad, transition: 'padding-right 0.2s',
+    }}>
+
+      {/* ── TOPBAR ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div>
+          <span style={{ color: '#00ff88', fontSize: 14, letterSpacing: 2, fontWeight: 'bold' }}>
+            OPENCLAW TUI
+          </span>
+          <span style={{ color: '#444', marginLeft: 14, fontSize: 12 }}>
+            agnostic_mechanical_arb_bot v0.1.0
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 20, alignItems: 'center', fontSize: 11, color: '#444' }}>
+          {apiKey
+            ? <span style={{ color: '#00ff88', cursor: 'pointer' }} onClick={() => setApiKey('')}>[ API KEY ✓ ]</span>
+            : <span style={{ color: '#555', cursor: 'pointer' }} onClick={() => {
+                const k = prompt('Anthropic API key (sk-ant-...)');
+                if (k) setApiKey(k);
+              }}>[ SET API KEY ]</span>
+          }
+          <span>{now.toISOString().slice(0, 19)}Z</span>
+          <span style={{ color: '#333' }}>|</span>
+          <span>wallet: 0x6664...07c2</span>
+          <span style={{ color: '#333' }}>|</span>
+          <span>polygon mainnet</span>
+        </div>
+      </div>
+
+      {thickSep()}
+
+      {/* ── EDGES ── */}
+      <div style={{ marginTop: 14, marginBottom: 14 }}>
+        <div style={{ color: '#ffd700', letterSpacing: 1, marginBottom: 10, fontSize: 12 }}>
+          ⚡ POLYMARKET ALPHA — IDENTIFIED EDGES
+        </div>
+        <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+          {EDGES.map((edge, i) => (
+            <div key={i} style={{ flex: '1 1 280px', minWidth: 260 }}>
+              <div style={{ color: edge.color, fontSize: 12, marginBottom: 5 }}>
+                {edge.label}
+              </div>
+              <div style={{ color: '#888', fontSize: 11, marginBottom: 5 }}>
+                {edge.apy}
+              </div>
+              {edge.items.map((item, j) => (
+                <div key={j} style={{ color: '#666', fontSize: 11, paddingLeft: 8, lineHeight: 1.7 }}>
+                  — {item}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {sep()}
+
+      {/* ── AGENT TEAM ── */}
+      <div style={{ marginTop: 14, marginBottom: 14 }}>
+        <div style={{ color: '#ffd700', letterSpacing: 1, marginBottom: 10, fontSize: 12 }}>
+          👥 AGENT TEAM — LIVE NOW
+        </div>
+
+        {/* header row */}
+        <div style={{ display: 'flex', color: '#444', fontSize: 11, paddingBottom: 5, borderBottom: '1px solid #222', marginBottom: 2 }}>
+          <span style={{ width: colW[0]*8 }}>{pad('ROLE', colW[0])}</span>
+          <span style={{ color: '#222', margin: '0 6px' }}>|</span>
+          <span style={{ width: colW[1]*8 }}>{pad('SESSION', colW[1])}</span>
+          <span style={{ color: '#222', margin: '0 6px' }}>|</span>
+          <span style={{ flex: 1 }}>{pad('TASK', colW[2])}</span>
+          <span style={{ color: '#222', margin: '0 6px' }}>|</span>
+          <span>STATUS</span>
+        </div>
+
+        {AGENTS.map((a) => {
+          const isActive = activeAgent?.session === a.session && a.clickable;
+          return (
+            <div key={a.role} style={{
+              display: 'flex', alignItems: 'flex-start',
+              padding: '6px 0', borderBottom: '1px solid #141414',
+              background: isActive ? '#0d0d0d' : 'transparent',
+            }}>
+              <span style={{ width: colW[0]*8, color: '#aaa', fontSize: 12 }}>
+                {a.icon} {a.role}
+              </span>
+              <span style={{ color: '#222', margin: '0 6px' }}>|</span>
+              <span
+                onClick={() => a.clickable && setActiveAgent(activeAgent?.session === a.session ? null : a)}
+                style={{
+                  width: colW[1]*8, fontSize: 12,
+                  color: a.clickable ? '#4af' : '#555',
+                  cursor: a.clickable ? 'pointer' : 'default',
+                  textDecoration: a.clickable ? 'underline' : 'none',
+                  textUnderlineOffset: 3,
+                }}
+              >
+                {a.session}
+              </span>
+              <span style={{ color: '#222', margin: '0 6px' }}>|</span>
+              <span style={{ flex: 1, color: '#777', fontSize: 11, lineHeight: 1.5 }}>{a.task}</span>
+              <span style={{ color: '#222', margin: '0 6px' }}>|</span>
+              <span style={{ color: a.statusColor, fontSize: 12, whiteSpace: 'nowrap' }}>
+                {a.status === 'Running'
+                  ? <><span className="blink" style={{ color: '#ffd700' }}>●</span> Running</>
+                  : <><span style={{ color: '#00ff88' }}>●</span> {a.status}</>
+                }
+              </span>
+            </div>
+          );
+        })}
+        <div style={{ color: '#333', fontSize: 10, marginTop: 6 }}>
+          ↑ click underlined session name to open agent chat panel
+        </div>
+      </div>
+
+      {sep()}
+
+      {/* ── SPRINT BOARD ── */}
+      <div style={{ marginTop: 14 }}>
+        <div style={{ color: '#ffd700', letterSpacing: 1, marginBottom: 12, fontSize: 12 }}>
+          📋 SPRINT BOARD
+        </div>
+
+        {[
+          { key: 's1', label: 'Sprint 1', badge: `DONE ✅  (${doneCount('s1')}/${totalCount('s1')})`, badgeColor: '#00ff88' },
+          { key: 's2', label: 'Sprint 2', badge: `IN PROGRESS 🔄  (${doneCount('s2')}/${totalCount('s2')})`, badgeColor: '#ffd700' },
+          { key: 's3', label: 'Sprint 3', badge: `QUEUED  (${doneCount('s3')}/${totalCount('s3')})`, badgeColor: '#555' },
+        ].map(({ key, label, badge, badgeColor }) => (
+          <div key={key} style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
+              <span style={{ color: '#e0e0e0', fontSize: 13 }}>{label}</span>
+              <span style={{ color: badgeColor, fontSize: 11 }}>({badge})</span>
+            </div>
+            {sprints[key].map(item => (
+              <div
+                key={item.id}
+                onClick={() => toggleItem(key, item.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '3px 0', cursor: 'pointer', userSelect: 'none',
+                }}
+              >
+                <span style={{ color: item.done ? '#00ff88' : '#333', fontSize: 12, width: 28, flexShrink: 0 }}>
+                  {item.done ? '[✓]' : '[ ]'}
+                </span>
+                <span style={{
+                  fontSize: 12, lineHeight: 1.6,
+                  color: item.done ? '#444' : '#999',
+                  textDecoration: item.done ? 'line-through' : 'none',
+                  textDecorationColor: '#333',
+                }}>
+                  {item.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {thickSep()}
+      <div style={{ color: '#2a2a2a', fontSize: 10, marginTop: 8 }}>
+        path: /Users/josephclark/Downloads/Trevera/Updated Resumes/Coding Projects/agnostic_mechanical_arb_bot
+      </div>
+
+      {/* ── CHAT PANEL ── */}
+      {activeAgent && (
+        <ChatPanel
+          agent={activeAgent}
+          onClose={() => setActiveAgent(null)}
+          apiKey={apiKey}
+          setApiKey={setApiKey}
+        />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

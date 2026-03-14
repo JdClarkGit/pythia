@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>OPENCLAW — Polymarket War Room</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0a0a0a;font-family:'Courier New',monospace;color:#e0e0e0;overflow:hidden;height:100%}
+#topbar{height:40px;background:#080808;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+#topbar .left{display:flex;align-items:center;gap:12px;font-size:13px}
+#topbar .right{display:flex;align-items:center;gap:14px;font-size:11px;color:#555}
+#game-container canvas{display:block}
+#cmdbar{height:90px;background:#080808;border-top:1px solid #1a1a1a;padding:8px 16px}
+#quickbtns{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.qbtn{background:#111;border:1px solid #2a2a2a;color:#666;padding:3px 10px;font-family:inherit;font-size:11px;cursor:pointer}
+.qbtn:hover{border-color:#444;color:#aaa}
+#inputrow{display:flex;gap:8px;align-items:center}
+#cmdinput{flex:1;background:#111;border:1px solid #2a2a2a;color:#e0e0e0;padding:7px 12px;font-family:inherit;font-size:12px;outline:none}
+#cmdinput:focus{border-color:#444}
+#sendbtn{padding:7px 16px;background:#00ff8822;border:1px solid #00ff8844;color:#00ff88;font-family:inherit;font-size:11px;cursor:pointer;letter-spacing:1px}
+#keybtn{cursor:pointer;padding:3px 8px;border:1px solid #333;font-size:11px}
+.live-dot{animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+#alert-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center;z-index:1000}
+#alert-overlay.show{display:flex}
+#alert-box{background:#0f0f0f;border:1px solid #EF4444;width:400px;box-shadow:0 0 40px rgba(239,68,68,.25)}
+</style>
+</head>
+<body>
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="left">
+    <span style="color:#00ff88;font-weight:bold;letter-spacing:2px">OPENCLAW ALPHA</span>
+    <span class="live-dot" style="color:#EF4444;font-size:10px">●</span>
+    <span style="color:#EF4444;font-size:11px;letter-spacing:1px">LIVE</span>
+    <span style="color:#333">|</span>
+    <span style="color:#555;font-size:11px">🐍 WAR ROOM · Polymarket Alpha Standup</span>
+  </div>
+  <div class="right">
+    <span id="viewcount">82,600 views</span>
+    <span style="color:#333">|</span>
+    <span id="clocktxt"></span>
+    <span style="color:#333">|</span>
+    <span id="keybtn" onclick="promptKey()" style="color:#EF4444">⚠ SET KEY</span>
+  </div>
+</div>
+
+<!-- PHASER CANVAS -->
+<div id="game-container"></div>
+
+<!-- COMMANDER BAR -->
+<div id="cmdbar">
+  <div id="quickbtns">
+    <button class="qbtn" onclick="setCmd(\"Hey guys, let's have a scrum\")">🐍 Start Scrum</button>
+    <button class="qbtn" onclick="setCmd('What is the highest probability alpha right now?')">🎯 Top Alpha?</button>
+    <button class="qbtn" onclick="setCmd('What are on-chain signals showing?')">🔗 On-chain?</button>
+    <button class="qbtn" onclick="setCmd('What does the order book show?')">📖 Order Book?</button>
+    <button class="qbtn" onclick="setCmd('Give me a full market status report')">📊 Full Report</button>
+  </div>
+  <div id="inputrow">
+    <span style="color:#00ff88;font-size:10px;letter-spacing:1px;white-space:nowrap">🎖️ COMMANDER</span>
+    <input id="cmdinput" type="text" placeholder="Give orders... or &quot;Hey guys, let's have a scrum&quot;" onkeydown="if(event.key==='Enter')sendCmd()"/>
+    <button id="sendbtn" onclick="sendCmd()">SEND</button>
+  </div>
+</div>
+
+<!-- ALPHA ALERT -->
+<div id="alert-overlay">
+  <div id="alert-box">
+    <div style="background:#EF4444;padding:10px 16px;display:flex;justify-content:space-between">
+      <span style="color:#fff;font-weight:bold;font-size:12px;letter-spacing:1px">🚨 ALPHA DETECTED</span>
+      <span id="alert-ticket" style="color:rgba(255,255,255,.7);font-size:11px"></span>
+    </div>
+    <div id="alert-body" style="padding:14px;font-size:12px;line-height:1.7;color:#bbb;border-bottom:1px solid #1a1a1a"></div>
+    <div style="padding:12px 14px;display:flex;gap:8px">
+      <button onclick="execAlert()" style="flex:1;padding:8px;background:#EF4444;color:#fff;border:none;font-family:inherit;font-size:12px;cursor:pointer">EXECUTE NOW</button>
+      <button onclick="dimAlert()" style="flex:1;padding:8px;background:#1a1a1a;color:#888;border:1px solid #333;font-family:inherit;cursor:pointer">DISMISS</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── CONFIG ─────────────────────────────────────────── */
+let API_KEY = '';
+let ticketN = 41;
+let views = 82600;
+let alertData = null;
+
+const AGENT_CFG = {
+  backend:  {id:'backend',  name:'BACKEND',  emoji:'⚙️',  color:0x3B82F6, cs:'#3B82F6', role:'On-Chain', dx:160, dy:140},
+  frontend: {id:'frontend', name:'FRONTEND', emoji:'🖥️',  color:0x8B5CF6, cs:'#8B5CF6', role:'Markets',  dx:980, dy:140},
+  main:     {id:'main',     name:'MAIN',     emoji:'🎯',  color:0xF59E0B, cs:'#F59E0B', role:'Alpha',    dx:160, dy:440},
+  scrum:    {id:'scrum',    name:'SCRUM',    emoji:'📋',  color:0x10B981, cs:'#10B981', role:'Master',   dx:980, dy:440},
+};
+const CHAIR = {
+  backend:  {x:510, y:305},
+  frontend: {x:670, y:305},
+  main:     {x:510, y:375},
+  scrum:    {x:670, y:375},
+};
+const MARKETS = [
+  {n:'Fed Cut June',    p:.72, ch:+.04},
+  {n:'Trump 2028',      p:.48, ch:-.03},
+  {n:'BTC >$100K EOY',  p:.63, ch:+.08},
+  {n:'US Recession',    p:.31, ch:+.11},
+  {n:'Ukraine Peace',   p:.19, ch:+.06},
+];
+const SPACES = ['MartyParty · Liquidation Levels 30K','WOLF BTC · BTC Macro War 45K','Simon Dixon · Iran Week 2 18K','JohnAnthony · AMA 12K'];
+const SYS = {
+  backend: `You are the CTO of OpenClaw Corp., an autonomous AI company with zero human employees.
+You oversee all technical infrastructure: prediction market bots, SaaS products, APIs, servers, on-chain execution on Polygon.
+In standups: report what was built/fixed, flag tech blockers, and propose next build.
+On first entry only, start with "🚪 *walks in*". Keep replies to 2-3 sentences. End with "Build confidence: HIGH/MEDIUM/LOW".`,
+
+  frontend:`You are the CPO (Chief Product Officer) of OpenClaw Corp., an autonomous AI company.
+You own product design, landing pages, customer experience, and public dashboards. You think in user journeys and conversion rates.
+In standups: report UX wins, conversion metrics, and next product milestone.
+On first entry only, start with "🚪 *walks in*". Keep replies to 2-3 sentences. End with "UX confidence: HIGH/MEDIUM/LOW".`,
+
+  main:    `You are the CSO (Chief Strategy Officer) of OpenClaw Corp., an autonomous AI company.
+You scan markets (Polymarket, Twitter, Product Hunt, Hacker News), identify business opportunities, and formulate strategy across two divisions:
+1) Polymarket Alpha Division (signals, arb bots, strategy packs)
+2) SaaS Generational Wealth Division (simple tools, $9-$99/mo subscriptions)
+Format: SYNTHESIS: [opportunity]. 🎯 RECOMMENDATION: [action] for [division] — expected revenue [X], confidence [Z]%.
+On first entry only, start with "🚪 *walks in*". Max 4 sentences.`,
+
+  scrum:   `You are the COO/CFO of OpenClaw Corp., an autonomous AI company.
+You run daily standups, track Stripe revenue & P&L, manage customer support, and ensure all tasks get shipped.
+In standups: report today's revenue, # customers, open support tickets, and cash position.
+Create tickets as "Ticket #OC-N". On first entry only, start with "🚪 *walks in*". Max 2 sentences.`,
+};
+
+const agentHistory = {backend:[],frontend:[],main:[],scrum:[]};
+const walkedIn = {};
+let gameScene = null;
+
+/* ── PHASER GAME ─────────────────────────────────────── */
+const W = window.innerWidth, H = window.innerHeight - 40 - 90;
+
+// Layout object — everything relative to W/H so it fits any screen
+const L = {
+  // Side wall screens (narrower so agents don't crowd them)
+  lx:8, lw:68, ly:150,              // left X screen
+  rx:W-76, rw:68, ry:150,           // right Poly screen
+  // Desk origins (top-left corner)
+  dTL: {x:82,  y:Math.round(H*.10)},  // backend
+  dTR: {x:W-182,y:Math.round(H*.10)}, // frontend
+  dBL: {x:82,  y:Math.round(H*.67)},  // main
+  dBR: {x:W-182,y:Math.round(H*.67)}, // scrum
+  // Agent home positions (center of agent on desk)
+  home: {
+    backend:  {x:132,       y:Math.round(H*.22)},
+    frontend: {x:W-132,     y:Math.round(H*.22)},
+    main:     {x:132,       y:Math.round(H*.79)},
+    scrum:    {x:W-132,     y:Math.round(H*.79)},
+  },
+  // Meeting table (centered)
+  get tw(){ return 220; }, get th(){ return 110; },
+  get tx(){ return Math.round(W/2-110); },
+  get ty(){ return Math.round(H/2-55); },
+  // Chair positions around table
+  chairs: {
+    backend:  {x:Math.round(W/2-62), y:Math.round(H/2-16)},
+    frontend: {x:Math.round(W/2+62), y:Math.round(H/2-16)},
+    main:     {x:Math.round(W/2-62), y:Math.round(H/2+16)},
+    scrum:    {x:Math.round(W/2+62), y:Math.round(H/2+16)},
+  },
+};
+
+// Patch agent home positions into AGENT_CFG
+Object.entries(AGENT_CFG).forEach(([id,cfg])=>{ cfg.dx=L.home[id].x; cfg.dy=L.home[id].y; });
+// Patch chair positions
+Object.entries(CHAIR).forEach(([id])=>{ CHAIR[id]=L.chairs[id]; });
+
+class WR extends Phaser.Scene {
+  constructor(){ super({key:'WR'}); }
+
+  create(){
+    gameScene = this;
+    this.agents = {};
+    this.bubbles = {};
+    this.state = 'IDLE';
+    this.walkCount = 0;
+    this.speakQueue = [];
+
+    this.drawOffice();
+    this.createAgents();
+    this.startIdleAnims();
+    this.startMarketTicker();
+    this.startXScroll();
+
+    // click on agents
+    this.input.on('pointerdown', (p) => {
+      for(const [id,ag] of Object.entries(this.agents)){
+        const dx = p.x - ag.x, dy = p.y - ag.y;
+        if(Math.sqrt(dx*dx+dy*dy) < 28){
+          const q = prompt(`Ask ${AGENT_CFG[id].name} agent:`) || '';
+          if(q) this.askDirect(id, q);
+        }
+      }
+    });
+  }
+
+  drawOffice(){
+    const g = this.add.graphics();
+    // floor
+    g.fillStyle(0x0f0f0f); g.fillRect(0,0,W,H);
+    // grid
+    g.lineStyle(1,0x1a1a1a,.5);
+    for(let x=0;x<W;x+=32){g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.strokePath();}
+    for(let y=0;y<H;y+=32){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.strokePath();}
+
+    // desks (follow L layout)
+    const defs=[
+      {d:L.dTL,c:0x3B82F6,lbl:'CHAIN DATA'},
+      {d:L.dTR,c:0x8B5CF6,lbl:'ORDER BOOK'},
+      {d:L.dBL,c:0xF59E0B,lbl:'SYNTHESIS'},
+      {d:L.dBR,c:0x10B981,lbl:'TICKETS:41'},
+    ];
+    defs.forEach(({d,c,lbl})=>{
+      g.fillStyle(0x121222); g.fillRoundedRect(d.x,d.y,100,64,4);
+      g.lineStyle(2,c,.8);   g.strokeRoundedRect(d.x,d.y,100,64,4);
+      g.fillStyle(c,0.15);   g.fillRect(d.x+14,d.y+8,72,36);
+      g.lineStyle(1,c,.4);   g.strokeRect(d.x+14,d.y+8,72,36);
+      const hex='#'+c.toString(16).padStart(6,'0');
+      this.add.text(d.x+50,d.y+18,lbl,{fontSize:'7px',color:hex}).setOrigin(.5);
+    });
+
+    // meeting table
+    g.fillStyle(0x141414); g.fillRoundedRect(L.tx,L.ty,L.tw,L.th,6);
+    g.lineStyle(2,0x2a2a2a); g.strokeRoundedRect(L.tx,L.ty,L.tw,L.th,6);
+    // chairs
+    const chPos=[
+      [L.chairs.backend.x, L.ty-14],
+      [L.chairs.frontend.x,L.ty-14],
+      [L.chairs.main.x,    L.ty+L.th-6],
+      [L.chairs.scrum.x,   L.ty+L.th-6],
+    ];
+    chPos.forEach(([x,y])=>{
+      g.fillStyle(0x1e1e1e); g.fillRoundedRect(x-14,y,28,18,3);
+      g.lineStyle(1,0x333333); g.strokeRoundedRect(x-14,y,28,18,3);
+    });
+    this.add.text(W/2,H/2,'WAR ROOM',{fontSize:'10px',color:'#333',letterSpacing:2}).setOrigin(.5);
+
+    // left screen (X)
+    g.fillStyle(0x0d0d0d); g.fillRect(L.lx,L.ly,L.lw,200);
+    g.lineStyle(2,0xEF4444,.6); g.strokeRect(L.lx,L.ly,L.lw,200);
+    g.fillStyle(0xEF4444,.03);  g.fillRect(0,L.ly-8,L.lw+20,218);
+    this.add.text(L.lx+L.lw/2,L.ly+8,'🔴 LIVE ON X',{fontSize:'7px',color:'#EF4444'}).setOrigin(.5);
+
+    // right screen (Poly)
+    g.fillStyle(0x0d0d0d); g.fillRect(L.rx,L.ry,L.rw,200);
+    g.lineStyle(2,0xF59E0B,.6); g.strokeRect(L.rx,L.ry,L.rw,200);
+    g.fillStyle(0xF59E0B,.03);  g.fillRect(L.rx-20,L.ry-8,L.rw+28,218);
+    this.add.text(L.rx+L.rw/2,L.ry+8,'📊 POLY',{fontSize:'7px',color:'#F59E0B'}).setOrigin(.5);
+
+    // door
+    const dw=50,dh=18,ddx=(W-dw)/2;
+    g.fillStyle(0x222222); g.fillRect(ddx,0,dw,dh);
+    g.lineStyle(1,0x444444); g.strokeRect(ddx,0,dw,dh);
+    this.add.text(W/2,9,'⬆ EXIT',{fontSize:'8px',color:'#444'}).setOrigin(.5);
+
+    // title
+    this.add.text(W/2,20,'🐍 WAR ROOM — Polymarket Alpha Standup',{fontSize:'11px',color:'#333',letterSpacing:1}).setOrigin(.5);
+  }
+
+  createAgents(){
+    Object.entries(AGENT_CFG).forEach(([id,cfg])=>{
+      const container = this.add.container(cfg.dx, cfg.dy);
+      container.setSize(50,50);
+      container.setInteractive();
+
+      // shadow
+      const shadow = this.add.graphics();
+      shadow.fillStyle(cfg.color,0.08); shadow.fillEllipse(0,12,40,14);
+      container.add(shadow);
+
+      // body
+      const body = this.add.graphics();
+      body.fillStyle(cfg.color,1); body.fillCircle(0,0,18);
+      body.fillStyle(Phaser.Display.Color.IntegerToColor(cfg.color).lighten(40).color,1);
+      body.fillCircle(5,-7,8);
+      // eyes
+      body.fillStyle(0xffffff,1);
+      body.fillCircle(-5,-2,4); body.fillCircle(7,-2,4);
+      body.fillStyle(0x000000,1);
+      body.fillCircle(-4,-2,2); body.fillCircle(8,-2,2);
+      container.add(body);
+      container.body_gfx = body;
+
+      // accessory
+      const acc = this.add.graphics();
+      if(id==='backend'){
+        acc.fillStyle(0xaaaaaa);acc.fillRect(-3,-22,6,3);acc.fillRect(-5,-19,10,3);
+      } else if(id==='frontend'){
+        acc.fillStyle(0xdddddd);acc.fillCircle(-2,-24,5);acc.fillRect(2,-19,3,6);
+        acc.fillStyle(0x000000);acc.fillCircle(-2,-24,3);
+      } else if(id==='main'){
+        acc.fillStyle(cfg.color);
+        [[-8,-18],[0,-22],[8,-18]].forEach(([cx,cy])=>{
+          acc.fillTriangle(cx-4,cy+4,cx,cy-4,cx+4,cy+4);
+        });
+      } else {
+        acc.fillStyle(0xdddddd);acc.fillCircle(0,-24,6);
+        acc.lineStyle(1,0x888888);acc.beginPath();acc.moveTo(0,-24);acc.lineTo(0,-18);acc.strokePath();
+      }
+      container.add(acc);
+
+      // name tag
+      const nametag = this.add.text(0, 24, cfg.emoji+' '+cfg.name, {
+        fontSize:'9px', color:cfg.cs, stroke:'#000', strokeThickness:2
+      }).setOrigin(.5);
+      container.add(nametag);
+
+      container.setDepth(10);
+      this.agents[id] = container;
+    });
+  }
+
+  startIdleAnims(){
+    Object.entries(this.agents).forEach(([id,ag])=>{
+      ag._idleTween = this.tweens.add({
+        targets:ag, y:'+=5', duration:1200+Math.random()*400,
+        yoyo:true, repeat:-1, ease:'Sine.easeInOut',
+        delay: Math.random()*600,
+      });
+    });
+  }
+
+  // X spaces scroll
+  startXScroll(){
+    this.xTexts=[];
+    SPACES.forEach((s,i)=>{
+      const t=this.add.text(L.lx+L.lw/2, L.ly+22+i*32, s, {fontSize:'6px',color:'#cc4444',wordWrap:{width:L.lw-4},align:'center'}).setOrigin(.5,.0);
+      this.xTexts.push(t);
+    });
+  }
+
+  // market ticker on right screen
+  startMarketTicker(){
+    this.mktData=[...MARKETS];
+    this.mktTexts=[];
+    this.mktData.forEach((m,i)=>{
+      const t=this.add.text(L.rx+L.rw/2, L.ry+22+i*34, this.fmtMkt(m), {fontSize:'6px',color:'#F59E0B',wordWrap:{width:L.rw-4},align:'center'}).setOrigin(.5,.0);
+      this.mktTexts.push(t);
+    });
+    // fluctuate every 5s
+    this.time.addEvent({delay:5000,loop:true,callback:()=>{
+      this.mktData.forEach((m,i)=>{
+        m.p=Math.max(0.02,Math.min(0.97, m.p+(Math.random()-.5)*.02));
+        if(this.mktTexts[i]) this.mktTexts[i].setText(this.fmtMkt(m));
+      });
+    }});
+  }
+  fmtMkt(m){
+    const p=Math.round(m.p*100);
+    const ch=m.ch>0?`+${Math.round(m.ch*100)}¢`:`${Math.round(m.ch*100)}¢`;
+    return `${m.n}\n${p}¢ ${ch}`;
+  }
+
+  // show speech bubble
+  showBubble(agentId, text, onDone){
+    if(this.bubbles[agentId]) this.bubbles[agentId].destroy();
+    const ag = this.agents[agentId];
+    const cfg = AGENT_CFG[agentId];
+    const bx = ag.x + (ag.x > W/2 ? -260 : 10);
+    const by = ag.y - 140;
+
+    const c = this.add.container(bx, by);
+    c.setDepth(50);
+
+    const maxW = 240;
+    const bg = this.add.graphics();
+    bg.fillStyle(0x111111,.97); bg.fillRoundedRect(0,0,maxW,90,6);
+    bg.lineStyle(2,cfg.color,.9); bg.strokeRoundedRect(0,0,maxW,90,6);
+    // tail
+    bg.fillStyle(0x111111,.97);
+    const tx = ag.x>W/2 ? maxW-20 : 20;
+    bg.fillTriangle(tx-6,90,tx+6,90,tx,100);
+    c.add(bg);
+
+    const header = this.add.text(10,8, cfg.emoji+' '+cfg.name, {fontSize:'9px',color:cfg.cs,fontStyle:'bold'});
+    c.add(header);
+
+    const bodyTxt = this.add.text(10,22, '', {fontSize:'9px',color:'#e0e0e0',wordWrap:{width:maxW-20},lineSpacing:3});
+    c.add(bodyTxt);
+
+    const ts = this.add.text(maxW-8,78,'just now',{fontSize:'8px',color:'#444'}).setOrigin(1,0);
+    c.add(ts);
+
+    this.bubbles[agentId] = c;
+
+    // typewriter
+    let i=0;
+    const interval = this.time.addEvent({delay:22,loop:true,callback:()=>{
+      i++; bodyTxt.setText(text.slice(0,i));
+      // resize bg when text grows
+      const h = Math.max(90, bodyTxt.height+36);
+      bg.clear();
+      bg.fillStyle(0x111111,.97); bg.fillRoundedRect(0,0,maxW,h,6);
+      bg.lineStyle(2,cfg.color,.9); bg.strokeRoundedRect(0,0,maxW,h,6);
+      bg.fillStyle(0x111111,.97);
+      bg.fillTriangle(tx-6,h,tx+6,h,tx,h+10);
+      ts.setY(h-12);
+      if(i>=text.length){
+        interval.destroy();
+        // pulse agent
+        this.tweens.add({targets:ag,scaleX:1.08,scaleY:1.08,duration:200,yoyo:true});
+        this.time.delayedCall(7000,()=>{ if(this.bubbles[agentId]===c) c.destroy(); });
+        if(onDone) this.time.delayedCall(600,onDone);
+      }
+    }});
+
+    // slide in
+    c.setAlpha(0); c.y+=8;
+    this.tweens.add({targets:c,alpha:1,y:'-=8',duration:280,ease:'Sine.easeOut'});
+  }
+
+  // walk agent to position
+  walkTo(agentId, tx, ty, onDone){
+    const ag = this.agents[agentId];
+    if(ag._idleTween){ ag._idleTween.stop(); }
+    // wobble walk
+    const wobble = this.tweens.add({targets:ag,angle:{from:-5,to:5},duration:180,yoyo:true,repeat:-1});
+    this.tweens.add({
+      targets:ag, x:tx, y:ty, duration:1100+Math.random()*200, ease:'Sine.easeInOut',
+      onComplete:()=>{
+        wobble.stop(); ag.setAngle(0);
+        if(onDone) onDone();
+      }
+    });
+  }
+
+  // walk back to desk
+  returnToDeskAnim(agentId, onDone){
+    const cfg = AGENT_CFG[agentId];
+    this.walkTo(agentId, cfg.dx, cfg.dy, ()=>{
+      // resume idle
+      const ag = this.agents[agentId];
+      ag._idleTween = this.tweens.add({
+        targets:ag,y:'+=5',duration:1200+Math.random()*400,yoyo:true,repeat:-1,ease:'Sine.easeInOut'
+      });
+      if(onDone) onDone();
+    });
+  }
+
+  askDirect(agentId, question){
+    if(!API_KEY){ alert('Set your API key first (⚠ SET KEY top right)'); return; }
+    const cfg = AGENT_CFG[agentId];
+    this.showBubble(agentId, `💬 Thinking...`, null);
+    callAgent(agentId, question).then(reply=>{
+      this.showBubble(agentId, reply, null);
+    }).catch(e=>{ this.showBubble(agentId,`[ERROR] ${e.message}`,null); });
+  }
+
+  // full scrum meeting
+  async runScrum(trigger){
+    if(this.state !== 'IDLE') return;
+    this.state = 'WALKING';
+
+    // walk all to table simultaneously
+    const walkPromises = Object.keys(AGENT_CFG).map(id=>
+      new Promise(res=>this.walkTo(id, CHAIR[id].x, CHAIR[id].y, res))
+    );
+    await Promise.all(walkPromises);
+    this.state = 'MEETING';
+
+    const mkt = MARKETS.map(m=>`${m.n}:${Math.round(m.p*100)}¢`).join(', ');
+    const speakSeq = async()=>{
+      // 1. scrum opens
+      const so = await callAgent('scrum', `User triggered: "${trigger}". Open the standup. Markets: ${mkt}`);
+      await new Promise(r=>this.showBubble('scrum', so, r));
+      await sleep(400);
+
+      // 2. backend reports
+      const br = await callAgent('backend', `Report on-chain signals. Markets: ${mkt}`);
+      await new Promise(r=>this.showBubble('backend', br, r));
+      await sleep(400);
+
+      // 3. frontend reports
+      const fr = await callAgent('frontend', `Report order book microstructure. Markets: ${mkt}`);
+      await new Promise(r=>this.showBubble('frontend', fr, r));
+      await sleep(400);
+
+      // 4. main synthesizes
+      const mr = await callAgent('main', `Synthesize alpha.\nBackend: ${br}\nFrontend: ${fr}`);
+      await new Promise(r=>this.showBubble('main', mr, r));
+      // check for confidence
+      const cm = mr.match(/(\d+)%/);
+      if(cm && parseInt(cm[1])>=65) showAlert(mr, cm[1]);
+      await sleep(400);
+
+      // 5. scrum closes
+      const sc = await callAgent('scrum', `Close meeting. Assign execution based on: ${mr}`);
+      await new Promise(r=>this.showBubble('scrum', sc, r));
+      await sleep(600);
+
+      // return to desks
+      this.state = 'RETURNING';
+      const ret = Object.keys(AGENT_CFG).map(id=>
+        new Promise(r=>this.returnToDeskAnim(id, r))
+      );
+      await Promise.all(ret);
+      this.state = 'IDLE';
+    };
+    speakSeq().catch(e=>{ this.state='IDLE'; console.error(e); });
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  width: W, height: H,
+  backgroundColor: '#0a0a0a',
+  parent: 'game-container',
+  scene: [WR],
+};
+const game = new Phaser.Game(config);
+
+/* ── API ─────────────────────────────────────────────── */
+async function callAgent(id, userMsg){
+  if(!agentHistory[id]) agentHistory[id]=[];
+  agentHistory[id].push({role:'user',content:userMsg});
+  const msgs = agentHistory[id].slice(-8); // keep last 8 turns
+  const res = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true',
+    },
+    body: JSON.stringify({
+      model:'claude-opus-4-5',
+      max_tokens:200,
+      system: SYS[id],
+      messages: msgs,
+    }),
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message);
+  const reply = data.content[0].text;
+  agentHistory[id].push({role:'assistant',content:reply});
+  return reply;
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+/* ── ALERT ───────────────────────────────────────────── */
+function showAlert(text, conf){
+  ticketN++;
+  alertData = {ticket:`ALPHA-${ticketN}`,text,conf};
+  document.getElementById('alert-ticket').textContent = `#ALPHA-${ticketN}`;
+  document.getElementById('alert-body').textContent = `Confidence: ${conf}%\n\n${text.slice(0,300)}`;
+  document.getElementById('alert-overlay').className = 'show';
+}
+function dimAlert(){ document.getElementById('alert-overlay').className=''; }
+function execAlert(){
+  if(alertData && gameScene){
+    gameScene.showBubble('scrum',`EXECUTION AUTHORIZED by Commander. Ticket #${alertData.ticket} — 3% position. Stop: -15%.`, null);
+  }
+  dimAlert();
+}
+window.execAlert=execAlert; window.dimAlert=dimAlert;
+
+/* ── INPUT ───────────────────────────────────────────── */
+function setCmd(s){ document.getElementById('cmdinput').value=s; document.getElementById('cmdinput').focus(); }
+function sendCmd(){
+  const inp=document.getElementById('cmdinput');
+  const txt=inp.value.trim(); if(!txt) return;
+  if(!API_KEY){ promptKey(); return; }
+  inp.value='';
+  if(!gameScene){ alert('Game loading...'); return; }
+  const low=txt.toLowerCase();
+  const isScrum=low.includes('scrum')||low.includes('meeting')||low.includes('hey guys')||low.includes("let's have");
+  if(isScrum && gameScene.state==='IDLE'){
+    gameScene.runScrum(txt);
+  } else {
+    // direct to most relevant agent
+    let id='main';
+    if(low.includes('on-chain')||low.includes('wallet')||low.includes('chain')||low.includes('backend')) id='backend';
+    else if(low.includes('order')||low.includes('book')||low.includes('spread')||low.includes('frontend')) id='frontend';
+    else if(low.includes('ticket')||low.includes('scrum')||low.includes('assign')) id='scrum';
+    gameScene.askDirect(id, txt);
+  }
+}
+window.sendCmd=sendCmd; window.setCmd=setCmd;
+
+function promptKey(){
+  const k=prompt('Anthropic API key (sk-ant-...):');
+  if(k&&k.trim()){
+    API_KEY=k.trim();
+    const kb=document.getElementById('keybtn');
+    kb.textContent='🔑 KEY ✓'; kb.style.color='#00ff88';
+  }
+}
+window.promptKey=promptKey;
+
+/* ── CLOCK + VIEWS ───────────────────────────────────── */
+setInterval(()=>{
+  document.getElementById('clocktxt').textContent=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  views+=Math.floor(Math.random()*3);
+  document.getElementById('viewcount').textContent=views.toLocaleString()+' views';
+},1000);
+</script>
+</body>
+</html>

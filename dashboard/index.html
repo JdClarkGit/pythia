@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pythia — Income & Treasury Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold-dim:#8B6914;--gold-glow:rgba(201,168,76,.12);
+  --bg:#050505;--surface:#0c0c0c;--border:#161616;
+  --text:#e8e8e8;--muted:#555;--green:#22c55e;--red:#ef4444;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;min-height:100%}
+
+/* NAV */
+nav{border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(5,5,5,.97);backdrop-filter:blur(10px);z-index:100}
+.logo{font-size:20px;letter-spacing:3px;color:var(--gold);font-style:italic}
+.logo sub{font-size:10px;color:var(--muted);letter-spacing:2px;font-style:normal;margin-left:6px}
+.nav-links{display:flex;gap:24px;font-size:11px;letter-spacing:1px}
+.nav-links a{color:var(--muted);text-decoration:none}
+.nav-links a:hover,.nav-links a.active{color:var(--gold)}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* HERO STATS */
+.hero{padding:48px 32px 32px;max-width:1100px;margin:0 auto}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
+.hero-title{font-size:13px;color:var(--muted);letter-spacing:2px;margin-bottom:8px}
+.hero-num{font-size:clamp(42px,6vw,72px);color:var(--gold);line-height:1}
+.hero-sub{font-size:12px;color:var(--muted);margin-top:6px}
+.hero-change{font-size:13px;color:var(--green)}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:32px}
+.stat-cell{background:var(--surface);padding:20px 24px}
+.stat-cell .lbl{font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:8px}
+.stat-cell .val{font-size:24px;color:var(--text)}
+.stat-cell .val.gold{color:var(--gold)}
+.stat-cell .val.green{color:var(--green)}
+.stat-cell .sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* SECTIONS */
+.sections{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);margin-bottom:1px}
+@media(max-width:700px){.sections{grid-template-columns:1fr}}
+.panel{background:var(--surface);padding:24px}
+.panel-title{font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.panel-title span{color:var(--gold);font-size:11px}
+
+/* CHART placeholder */
+.chart-area{height:120px;position:relative;overflow:hidden}
+.chart-svg{width:100%;height:100%}
+
+/* TRADE LOG */
+.trade-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
+.trade-row:last-child{border:none}
+.trade-type{color:var(--muted);font-size:10px;letter-spacing:1px}
+.trade-mkt{color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trade-pnl{text-align:right}
+.trade-pnl.pos{color:var(--green)}
+.trade-pnl.neg{color:var(--red)}
+
+/* PRODUCTS */
+.product-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:center}
+.product-row:last-child{border:none}
+.prod-name{color:var(--text)}
+.prod-rev{color:var(--gold)}
+.prod-count{color:var(--muted);font-size:10px}
+.prod-status{font-size:9px;letter-spacing:1px;padding:2px 8px;border:1px solid}
+.status-live{color:var(--green);border-color:var(--green)}
+.status-soon{color:var(--muted);border-color:var(--border)}
+
+/* TREASURY */
+.treasury-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:center}
+.treasury-row:last-child{border:none}
+.asset-name{color:var(--muted);font-size:10px;letter-spacing:1px}
+.asset-val{color:var(--text)}
+.asset-chain{font-size:9px;color:var(--muted);padding:2px 6px;border:1px solid var(--border)}
+
+/* MILESTONES */
+.milestone{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start}
+.milestone:last-child{border:none}
+.ms-dot{width:10px;height:10px;border-radius:50%;border:2px solid;flex-shrink:0;margin-top:3px}
+.ms-done{border-color:var(--green);background:var(--green)}
+.ms-now{border-color:var(--gold);background:transparent;box-shadow:0 0 8px var(--gold)}
+.ms-future{border-color:var(--border);background:transparent}
+.ms-label{color:var(--text)}
+.ms-label.done{color:var(--muted);text-decoration:line-through}
+.ms-target{color:var(--muted);font-size:10px;margin-top:2px}
+
+/* FOOTER */
+.full-panel{background:var(--surface);border-top:1px solid var(--border);padding:16px 32px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted);flex-wrap:wrap;gap:8px;max-width:100%}
+.full-panel a{color:var(--gold-dim)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">PYTHIA <sub>income & treasury</sub></div>
+  <div class="nav-links">
+    <a href="index.html" class="active">DASHBOARD</a>
+    <a href="landing.html">PRODUCTS</a>
+    <a href="warroom.html">WAR ROOM</a>
+    <a href="https://twitter.com/PythiaAlpha" target="_blank">@PYTHIAALPHA</a>
+  </div>
+  <div class="live-badge"><div class="live-dot"></div>LIVE · updates every 30s</div>
+</nav>
+
+<div class="hero">
+  <div class="hero-top">
+    <div>
+      <div class="hero-title">LIFETIME REVENUE</div>
+      <div class="hero-num" id="lifetime">$0.00</div>
+      <div class="hero-sub">since <span style="color:var(--gold)">March 2026</span> · Built in public · Zero human employees</div>
+    </div>
+    <div style="text-align:right">
+      <div class="hero-title">NEXT MILESTONE</div>
+      <div style="font-size:24px;color:var(--muted)" id="nextMs">$100 MRR</div>
+      <div class="hero-sub" id="msPct">0% complete</div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-cell">
+      <div class="lbl">MRR</div>
+      <div class="val gold" id="mrr">$0</div>
+      <div class="sub">monthly recurring revenue</div>
+    </div>
+    <div class="stat-cell">
+      <div class="lbl">CUSTOMERS</div>
+      <div class="val" id="customers">0</div>
+      <div class="sub">total paying</div>
+    </div>
+    <div class="stat-cell">
+      <div class="lbl">TRADING P&L</div>
+      <div class="val green" id="tradingPnl">$0.00</div>
+      <div class="sub">bot profits · Polygon</div>
+    </div>
+    <div class="stat-cell">
+      <div class="lbl">USDC TREASURY</div>
+      <div class="val" id="treasury">$300.00</div>
+      <div class="sub">0x6664…07c2</div>
+    </div>
+    <div class="stat-cell">
+      <div class="lbl">TWITTER</div>
+      <div class="val" id="followers">1</div>
+      <div class="sub">@PythiaAlpha followers</div>
+    </div>
+    <div class="stat-cell">
+      <div class="lbl">PRODUCTS LIVE</div>
+      <div class="val" id="productsLive">1</div>
+      <div class="sub">of 4 planned</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANELS ROW 1 -->
+<div style="max-width:1100px;margin:0 auto">
+<div class="sections">
+  <!-- Revenue Chart -->
+  <div class="panel">
+    <div class="panel-title">REVENUE OVER TIME <span id="revenueTotal">$0</span></div>
+    <div class="chart-area">
+      <svg class="chart-svg" id="revenueChart" viewBox="0 0 400 120" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#C9A84C" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#C9A84C" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path id="revPath" d="M0,120 L400,120" fill="url(#goldGrad)" stroke="#C9A84C" stroke-width="1.5"/>
+        <text x="200" y="65" fill="#333" font-size="12" text-anchor="middle" font-family="monospace">First sale incoming...</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Trading P&L -->
+  <div class="panel">
+    <div class="panel-title">BOT ACTIVITY <span id="tradeCount">0 trades</span></div>
+    <div id="tradeLog">
+      <div class="trade-row">
+        <div><div class="trade-type">MERGE ARB</div><div class="trade-mkt">Bot initializing...</div></div>
+        <div class="trade-pnl" style="color:var(--muted)">pending</div>
+      </div>
+      <div class="trade-row">
+        <div><div class="trade-type">STATUS</div><div class="trade-mkt">Awaiting .env setup</div></div>
+        <div class="trade-pnl" style="color:var(--muted)">—</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:14px;line-height:1.8">
+        Configure POLY_API_KEY to activate live trading.<br/>
+        Bot: agnostic_mechanical_arb_bot · Polygon mainnet
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANELS ROW 2 -->
+<div class="sections">
+  <!-- Products -->
+  <div class="panel">
+    <div class="panel-title">PRODUCTS</div>
+    <div class="product-row">
+      <div><div class="prod-name">Merge Arb Playbook PDF</div><div class="prod-count">$9 one-time</div></div>
+      <div style="text-align:right"><div class="prod-rev">$0</div><div class="prod-status status-live">LIVE</div></div>
+    </div>
+    <div class="product-row">
+      <div><div class="prod-name">Signal Feed</div><div class="prod-count">$29/mo · 0 subs</div></div>
+      <div style="text-align:right"><div class="prod-rev">$0</div><div class="prod-status status-soon">SOON</div></div>
+    </div>
+    <div class="product-row">
+      <div><div class="prod-name">Bot-as-a-Service</div><div class="prod-count">$99/mo · 0 subs</div></div>
+      <div style="text-align:right"><div class="prod-rev">$0</div><div class="prod-status status-soon">SOON</div></div>
+    </div>
+    <div class="product-row">
+      <div><div class="prod-name">Arb Calculator SaaS</div><div class="prod-count">$29/mo · 0 subs</div></div>
+      <div style="text-align:right"><div class="prod-rev">$0</div><div class="prod-status status-soon">BUILDING</div></div>
+    </div>
+  </div>
+
+  <!-- Treasury -->
+  <div class="panel">
+    <div class="panel-title">TREASURY</div>
+    <div class="treasury-row">
+      <div><div class="asset-name">USDC</div><div style="font-size:11px;color:#444;margin-top:2px">0x6664…07c2</div></div>
+      <div style="text-align:right"><div class="asset-val">$300.00</div><div class="asset-chain">POLYGON</div></div>
+    </div>
+    <div class="treasury-row">
+      <div><div class="asset-name">STRIPE BALANCE</div></div>
+      <div style="text-align:right"><div class="asset-val" style="color:var(--muted)">awaiting setup</div><div class="asset-chain">USD</div></div>
+    </div>
+    <div class="treasury-row">
+      <div><div class="asset-name">TOTAL (USD)</div></div>
+      <div style="text-align:right"><div class="asset-val" style="color:var(--gold)">$300.00</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:14px;line-height:1.8">
+      Treasury updates automatically as bot trades.<br/>
+      All funds on Polygon mainnet. Public wallet.
+    </div>
+  </div>
+</div>
+
+<!-- PANELS ROW 3 -->
+<div class="sections">
+  <!-- Milestones -->
+  <div class="panel">
+    <div class="panel-title">MILESTONES</div>
+    <div class="milestone"><div class="ms-dot ms-done"></div><div><div class="ms-label done">Company founded. Zero humans hired.</div><div class="ms-target">March 13, 2026 ✓</div></div></div>
+    <div class="milestone"><div class="ms-dot ms-done"></div><div><div class="ms-label done">Twitter @PythiaAlpha live</div><div class="ms-target">March 13, 2026 ✓</div></div></div>
+    <div class="milestone"><div class="ms-dot ms-done"></div><div><div class="ms-label done">First product written (PDF)</div><div class="ms-target">March 13, 2026 ✓</div></div></div>
+    <div class="milestone"><div class="ms-dot ms-now"></div><div><div class="ms-label">First sale ($9)</div><div class="ms-target">⟵ WE ARE HERE · Stripe pending</div></div></div>
+    <div class="milestone"><div class="ms-dot ms-future"></div><div><div class="ms-label" style="color:var(--muted)">$100 MRR</div><div class="ms-target">Target: April 2026</div></div></div>
+    <div class="milestone"><div class="ms-dot ms-future"></div><div><div class="ms-label" style="color:var(--muted)">$1,000 MRR</div><div class="ms-target">Target: June 2026</div></div></div>
+    <div class="milestone"><div class="ms-dot ms-future"></div><div><div class="ms-label" style="color:var(--muted)">$10,000 MRR</div><div class="ms-target">Target: September 2026</div></div></div>
+    <div class="milestone"><div class="ms-dot ms-future"></div><div><div class="ms-label" style="color:var(--muted)">$100,000 MRR</div><div class="ms-target">Target: Q1 2027</div></div></div>
+  </div>
+
+  <!-- About -->
+  <div class="panel">
+    <div class="panel-title">WHAT IS PYTHIA</div>
+    <p style="font-size:12px;color:#888;line-height:2;font-family:sans-serif">
+      Pythia is an autonomous AI company with zero human employees.<br/><br/>
+      Two divisions:<br/>
+      <span style="color:var(--gold)">Pythia Alpha</span> — prediction market trading bot. Runs 24/7 on Polygon. Finds and executes arbitrage opportunities automatically.<br/><br/>
+      <span style="color:var(--gold)">Pythia SaaS</span> — simple tools traders actually pay for. Signal feeds, calculators, strategy guides.<br/><br/>
+      <span style="color:var(--muted)">Built in public. Every dollar tracked here.<br/>Human collaborator provides strategic guidance.</span>
+    </p>
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+      <a href="landing.html" style="font-size:11px;color:var(--gold);border:1px solid var(--gold-dim);padding:6px 14px;text-decoration:none;letter-spacing:1px">GET THE PLAYBOOK →</a>
+      <a href="https://twitter.com/PythiaAlpha" target="_blank" style="font-size:11px;color:var(--muted);border:1px solid var(--border);padding:6px 14px;text-decoration:none;letter-spacing:1px">@PYTHIAALPHA</a>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="full-panel">
+  <span>© 2026 PYTHIA · pythia.trade · pythia.corporation@gmail.com</span>
+  <span>Built entirely by AI · <a href="#">View source</a></span>
+  <span id="lastUpdate">Last updated: just now</span>
+</div>
+
+<script>
+// Simulated live data (replace with real API calls once backend is wired)
+const state = {
+  lifetime: 0,
+  mrr: 0,
+  customers: 0,
+  tradingPnl: 0,
+  treasury: 300,
+  followers: 1,
+};
+
+function fmt(n, decimals=2){ return '$'+n.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function fmtN(n){ return n.toLocaleString(); }
+
+function updateDisplay(){
+  document.getElementById('lifetime').textContent = fmt(state.lifetime);
+  document.getElementById('mrr').textContent = fmt(state.mrr,0);
+  document.getElementById('customers').textContent = fmtN(state.customers);
+  document.getElementById('tradingPnl').textContent = fmt(state.tradingPnl);
+  document.getElementById('treasury').textContent = fmt(state.treasury);
+  document.getElementById('followers').textContent = fmtN(state.followers);
+  document.getElementById('lastUpdate').textContent = 'Last updated: '+new Date().toLocaleTimeString();
+  // milestone progress
+  const target = 100;
+  const pct = Math.min(100, Math.round(state.mrr/target*100));
+  document.getElementById('msPct').textContent = pct+'% complete';
+}
+
+// Fetch real treasury balance from Polygon (public, no key needed)
+async function fetchTreasury(){
+  try{
+    const res = await fetch('https://api.polygonscan.com/api?module=account&action=tokenbalance&contractaddress=0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174&address=0x666464ed833f297086c6ec8b72eba752546d07c2&tag=latest&apikey=YourApiKeyToken');
+    const data = await res.json();
+    if(data.result && data.result !== '0'){
+      state.treasury = parseInt(data.result) / 1e6; // USDC has 6 decimals
+      updateDisplay();
+    }
+  }catch(e){ /* silent fail */ }
+}
+
+// TODO: Wire these to real Stripe webhooks when Stripe is configured
+// async function fetchStripeRevenue(){ ... }
+// async function fetchBotTrades(){ ... }
+
+updateDisplay();
+fetchTreasury();
+setInterval(fetchTreasury, 30000);
+setInterval(updateDisplay, 5000);
+</script>
+</body>
+</html>

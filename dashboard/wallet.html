@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARB-BOT | Wallet</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div class="page-wrapper">
+
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="dot"></span>ARB-BOT
+    </div>
+    <div class="nav-links">
+      <a href="index.html"      class="nav-link">Dashboard</a>
+      <a href="strategies.html" class="nav-link">Strategies</a>
+      <a href="scanner.html"    class="nav-link">Scanner</a>
+      <a href="trades.html"     class="nav-link">Trades</a>
+      <a href="wallet.html"     class="nav-link active">Wallet</a>
+    </div>
+    <div class="nav-stats">
+      <div class="refresh-indicator">
+        <div class="refresh-dot" id="refresh-dot"></div>
+        <span id="refresh-countdown">30s</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Wallet</div>
+        <div class="page-subtitle">Polygon network · USDC balances and token holdings</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <a href="https://wallet.polygon.technology/polygon/bridge" target="_blank" rel="noopener" class="btn btn-primary">Bridge USDC</a>
+        <button class="btn" id="refresh-btn">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Address + Balances -->
+    <div style="display:grid;grid-template-columns:1fr auto;gap:var(--gap-md);margin-bottom:var(--gap-lg);align-items:start">
+
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Wallet Address</span></div>
+        <div class="panel-body" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div class="wallet-address" id="wallet-address">0x666464ed833f297086c6ec8b72eba752546d07c2</div>
+          <button class="btn" id="copy-btn" style="white-space:nowrap">Copy</button>
+          <a id="explorer-link"
+             href="https://polygonscan.com/address/0x666464ed833f297086c6ec8b72eba752546d07c2"
+             target="_blank" rel="noopener" class="btn">View on Polygonscan</a>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--gap-md)">
+        <div class="stat-card">
+          <span class="stat-card-label">USDC Balance</span>
+          <span class="stat-card-value mono" id="usdc-balance">—</span>
+          <span class="stat-card-sub text-muted">Polygon</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card-label">MATIC Balance</span>
+          <span class="stat-card-value mono" id="matic-balance">—</span>
+          <span class="stat-card-sub text-muted">Gas reserve</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Token Holdings -->
+    <div class="panel" style="margin-bottom:var(--gap-lg)">
+      <div class="panel-header">
+        <span class="panel-title">Token Holdings</span>
+        <span class="panel-badge" id="holdings-count">—</span>
+      </div>
+      <div class="table-wrap">
+        <table id="holdings-table">
+          <thead>
+            <tr>
+              <th>Market</th>
+              <th>Token</th>
+              <th class="right">Amount</th>
+              <th class="right">Mark Price</th>
+              <th class="right">Value</th>
+            </tr>
+          </thead>
+          <tbody id="holdings-tbody">
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Transaction history -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Transaction History</span>
+        <span class="text-muted" style="font-size:0.72rem">Last 20</span>
+      </div>
+      <div class="table-wrap" style="max-height:400px">
+        <table id="tx-table">
+          <thead>
+            <tr>
+              <th>Tx Hash</th>
+              <th>Type</th>
+              <th class="right">Amount</th>
+              <th>Timestamp</th>
+              <th class="right">Explorer</th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody">
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="5"><div class="skeleton skeleton-row"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { fetchWallet } from './js/api.js';
+
+  let lastUpdate = Date.now();
+
+  async function load() {
+    const dot = document.getElementById('refresh-dot');
+    if (dot) { dot.classList.add('active'); setTimeout(()=>dot.classList.remove('active'),800); }
+    lastUpdate = Date.now();
+
+    const w = await fetchWallet();
+    if (!w) return;
+
+    // Address
+    const addrEl = document.getElementById('wallet-address');
+    if (addrEl) addrEl.textContent = w.address;
+
+    const explorerEl = document.getElementById('explorer-link');
+    if (explorerEl) explorerEl.href = `https://polygonscan.com/address/${w.address}`;
+
+    // Balances
+    document.getElementById('usdc-balance').textContent  = `$${Number(w.usdc_balance).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    document.getElementById('matic-balance').textContent = `${Number(w.matic_balance).toFixed(4)} MATIC`;
+
+    // Holdings
+    renderHoldings(w.holdings ?? []);
+
+    // Transactions
+    renderTransactions(w.transactions ?? []);
+  }
+
+  function renderHoldings(holdings) {
+    const tbody   = document.getElementById('holdings-tbody');
+    const countEl = document.getElementById('holdings-count');
+    if (!tbody) return;
+    if (countEl) countEl.textContent = holdings.length;
+
+    if (holdings.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No token holdings</td></tr>`;
+      return;
+    }
+
+    const totalValue = holdings.reduce((s,h) => s + h.value, 0);
+
+    tbody.innerHTML = holdings.map(h => {
+      const tokenColor = h.token === 'YES' ? 'var(--success)' : 'var(--danger)';
+      return `<tr>
+        <td title="${escHtml(h.market)}">${escHtml(truncate(h.market,44))}</td>
+        <td><span class="num" style="color:${tokenColor};font-weight:600">${h.token}</span></td>
+        <td class="num right">${Number(h.amount).toFixed(2)}</td>
+        <td class="num right">${Number(h.price).toFixed(4)}</td>
+        <td class="num right">$${Number(h.value).toFixed(2)}</td>
+      </tr>`;
+    }).join('') + `<tr style="border-top:2px solid var(--border-light)">
+      <td colspan="4" class="text-right" style="font-size:0.78rem;color:var(--text-muted);padding:8px 12px">Total Holdings Value</td>
+      <td class="num right" style="font-weight:600">$${totalValue.toFixed(2)}</td>
+    </tr>`;
+  }
+
+  function renderTransactions(txs) {
+    const tbody = document.getElementById('tx-tbody');
+    if (!tbody) return;
+
+    if (txs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No transactions</td></tr>`;
+      return;
+    }
+
+    const TYPE_COLORS = { buy:'var(--success)', sell:'var(--danger)', merge:'var(--accent)', transfer:'var(--info)' };
+
+    tbody.innerHTML = txs.map(tx => {
+      const short = tx.hash.slice(0,8)+'…'+tx.hash.slice(-6);
+      const ts    = new Date(tx.timestamp).toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+      const tColor = TYPE_COLORS[tx.type] ?? 'var(--text-muted)';
+      return `<tr>
+        <td class="mono" style="font-size:0.78rem;color:var(--text-muted)">${short}</td>
+        <td><span style="color:${tColor};text-transform:uppercase;font-size:0.78rem;font-family:var(--font-mono)">${tx.type}</span></td>
+        <td class="num right">$${Number(tx.amount).toFixed(2)}</td>
+        <td class="mono" style="font-size:0.78rem;color:var(--text-muted)">${ts}</td>
+        <td class="right">
+          <a href="https://polygonscan.com/tx/${tx.hash}" target="_blank" rel="noopener"
+             class="btn" style="padding:2px 8px;font-size:0.72rem">↗</a>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    load();
+    setInterval(load, 30_000);
+
+    setInterval(() => {
+      const el = document.getElementById('refresh-countdown');
+      if (!el) return;
+      const r = Math.max(0, 30 - Math.floor((Date.now()-lastUpdate)/1000));
+      el.textContent = `${r}s`;
+    }, 1000);
+
+    document.getElementById('refresh-btn')?.addEventListener('click', load);
+
+    document.getElementById('copy-btn')?.addEventListener('click', () => {
+      const addr = document.getElementById('wallet-address')?.textContent ?? '';
+      navigator.clipboard.writeText(addr).then(() => {
+        const btn = document.getElementById('copy-btn');
+        if (btn) { btn.textContent='Copied!'; setTimeout(()=>btn.textContent='Copy',2000); }
+      });
+    });
+  });
+
+  function truncate(s, n) { return s.length > n ? s.slice(0,n)+'…' : s; }
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

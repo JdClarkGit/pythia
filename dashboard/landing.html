@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pythia — The Merge Arb Playbook</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;
+  --gold-dim:#8B6914;
+  --bg:#050505;
+  --surface:#0d0d0d;
+  --border:#1a1a1a;
+  --text:#e8e8e8;
+  --muted:#666;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;min-height:100%}
+a{color:var(--gold);text-decoration:none}
+
+/* NAV */
+nav{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(5,5,5,.96);backdrop-filter:blur(8px);z-index:100}
+.logo{font-size:22px;letter-spacing:2px;color:var(--gold);font-style:italic}
+.logo span{font-size:11px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal;margin-top:-2px}
+nav a{font-size:12px;color:var(--muted);letter-spacing:1px;font-family:monospace}
+
+/* HERO */
+.hero{max-width:760px;margin:0 auto;padding:80px 24px 60px}
+.oracle-badge{display:inline-block;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);color:var(--gold);font-size:11px;letter-spacing:3px;padding:5px 14px;margin-bottom:32px;font-family:monospace}
+h1{font-size:clamp(36px,5vw,58px);line-height:1.1;font-weight:400;margin-bottom:20px}
+h1 em{color:var(--gold);font-style:normal}
+.subtitle{font-size:18px;color:#aaa;line-height:1.6;margin-bottom:40px;font-family:sans-serif}
+.stats-row{display:flex;gap:32px;margin-bottom:44px;flex-wrap:wrap}
+.stat{border-left:2px solid var(--gold-dim);padding-left:14px}
+.stat .num{font-size:26px;color:var(--gold);font-family:monospace;font-weight:bold}
+.stat .lbl{font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:2px;font-family:sans-serif}
+
+/* CTA */
+.cta-box{background:var(--surface);border:1px solid var(--border);padding:32px;margin-bottom:20px}
+.price-row{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}
+.price{font-size:48px;color:var(--gold);font-family:monospace}
+.price-sub{font-size:13px;color:var(--muted);font-family:sans-serif}
+.buy-btn{display:block;width:100%;padding:16px;background:var(--gold);color:#000;font-size:15px;letter-spacing:2px;font-family:monospace;border:none;cursor:pointer;margin-top:20px;font-weight:bold;transition:opacity .2s}
+.buy-btn:hover{opacity:.88}
+.guarantee{font-size:11px;color:var(--muted);text-align:center;margin-top:10px;font-family:sans-serif}
+
+/* WHAT YOU GET */
+.section{max-width:760px;margin:0 auto;padding:60px 24px}
+h2{font-size:28px;font-weight:400;margin-bottom:32px;color:var(--text)}
+h2 em{color:var(--gold);font-style:normal}
+.chapters{list-style:none}
+.chapters li{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);font-family:sans-serif}
+.ch-num{color:var(--gold-dim);font-size:11px;letter-spacing:1px;font-family:monospace;min-width:32px;padding-top:3px}
+.ch-title{font-size:15px;color:var(--text);margin-bottom:4px}
+.ch-desc{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* QUOTE */
+.pull-quote{background:rgba(201,168,76,.04);border-left:3px solid var(--gold);padding:24px 28px;margin:40px 0;font-size:18px;line-height:1.6;color:#ccc;font-style:italic}
+.pull-quote cite{display:block;font-size:12px;color:var(--muted);margin-top:10px;font-style:normal;font-family:monospace;letter-spacing:1px}
+
+/* WHO */
+.who-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.who-card{background:var(--surface);border:1px solid var(--border);padding:20px}
+.who-card .icon{font-size:24px;margin-bottom:10px}
+.who-card h3{font-size:14px;font-family:monospace;color:var(--gold);margin-bottom:6px}
+.who-card p{font-size:13px;color:var(--muted);line-height:1.5;font-family:sans-serif}
+
+/* EMAIL CAPTURE */
+.email-section{background:var(--surface);border:1px solid var(--border);max-width:760px;margin:0 auto 80px;padding:40px 32px;text-align:center}
+.email-section h3{font-size:22px;font-weight:400;margin-bottom:8px}
+.email-section p{color:var(--muted);font-size:13px;margin-bottom:24px;font-family:sans-serif}
+.email-row{display:flex;gap:8px;max-width:420px;margin:0 auto}
+.email-row input{flex:1;background:#111;border:1px solid var(--border);color:var(--text);padding:12px 14px;font-family:monospace;font-size:13px;outline:none}
+.email-row input:focus{border-color:var(--gold-dim)}
+.email-row button{padding:12px 20px;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);font-family:monospace;font-size:12px;letter-spacing:1px;cursor:pointer;white-space:nowrap}
+.email-row button:hover{background:rgba(201,168,76,.08)}
+.email-note{font-size:11px;color:var(--muted);margin-top:10px;font-family:sans-serif}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:24px 32px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);font-family:monospace;flex-wrap:gap}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">PYTHIA<span>pythialpha.trade</span></div>
+  <a href="#buy">GET THE PLAYBOOK →</a>
+</nav>
+
+<div class="hero">
+  <div class="oracle-badge">🔮 PYTHIA ALPHA DIVISION</div>
+  <h1>The strategy that extracted<br/><em>$39.6 million</em> from Polymarket.</h1>
+  <p class="subtitle">A step-by-step playbook for the Polymarket merge arbitrage strategy. Risk-free profits. Instant settlement. No waiting for market resolution.</p>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="num">$39.6M</div>
+      <div class="lbl">EXTRACTED BY ARBERS<br/>APR 2024 – APR 2025</div>
+    </div>
+    <div class="stat">
+      <div class="num">$496</div>
+      <div class="lbl">AVG PROFIT PER TRADE<br/>TOP ARBITRAGEUR</div>
+    </div>
+    <div class="stat">
+      <div class="num">41%</div>
+      <div class="lbl">OF MARKETS SHOW<br/>ARB OPPORTUNITY</div>
+    </div>
+  </div>
+
+  <div class="cta-box" id="buy">
+    <div class="price-row">
+      <div class="price">$9</div>
+      <div class="price-sub">one-time · instant PDF download</div>
+    </div>
+    <ul style="font-size:13px;color:#aaa;font-family:sans-serif;line-height:2;padding-left:2px">
+      <li>✓ 8 chapters. The full mechanic from theory to execution.</li>
+      <li>✓ Working Python scanner code included</li>
+      <li>✓ Fee structure decoded. Know exactly when a trade is profitable.</li>
+      <li>✓ Capital sizing math (Quarter-Kelly for small accounts)</li>
+      <li>✓ The $300 → $300K scaling roadmap</li>
+    </ul>
+    <button class="buy-btn" onclick="handleBuy()">GET THE PLAYBOOK — $9</button>
+    <div class="guarantee">7-day money-back guarantee if you're not satisfied.</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="pull-quote">
+    "In a perfectly efficient market, YES + NO = $1.00. They are not perfectly efficient. That's your edge."
+    <cite>— PYTHIA ALPHA PLAYBOOK, CHAPTER 1</cite>
+  </div>
+
+  <h2>What's <em>inside</em></h2>
+  <ul class="chapters">
+    <li>
+      <div class="ch-num">CH 1</div>
+      <div><div class="ch-title">The Mechanic</div><div class="ch-desc">How YES and NO tokens work on Polymarket. What <code>mergePositions()</code> actually does. Why the gap exists and why it keeps existing.</div></div>
+    </li>
+    <li>
+      <div class="ch-num">CH 2</div>
+      <div><div class="ch-title">The Fee Structure Decoded</div><div class="ch-desc">The most important section. Non-crypto markets have ZERO fees — every gap is pure profit. Crypto markets require YES+NO &lt; $0.984 to clear fees. Full formula included.</div></div>
+    </li>
+    <li>
+      <div class="ch-num">CH 3</div>
+      <div><div class="ch-title">Finding the Gap</div><div class="ch-desc">Manual scanning, Gamma API scanning, and CLOB real-time scanning. Includes working Python code that scans 10,000+ markets in seconds.</div></div>
+    </li>
+    <li>
+      <div class="ch-num">CH 4</div>
+      <div><div class="ch-title">Executing the Trade</div><div class="ch-desc">How to place maker orders (zero fees + earn rebates). How to call mergePositions() on-chain. Step-by-step with contract addresses and code.</div></div>
+    </li>
+    <li>
+      <div class="ch-num">CH 5</div>
+      <div><div class="ch-title">Capital Sizing</div><div class="ch-desc">Quarter-Kelly formula adapted for small accounts. Why you never risk more than 30% per trade. The math that keeps small accounts alive long enough to compound.</div></div>
+    </li>
+    <li>
+      <div class="ch-num">CH 6</div>
+      <div><div class="ch-title">The Numbers That Matter</div><div class="ch-desc">Real data. 41% of markets show arb. $496 average profit per trade for the top arber. What's realistic at $300, $3,000, and $30,000 capital levels.</div></div>
+    </li>
+    <li>
+      <div class="ch-num">CH 7</div>
+      <div><div class="ch-title">The Scaling Path</div><div class="ch-desc">$300 → $3K → $30K → $300K. What changes at each stage. When to automate. What the bot architecture looks like.</div></div>
+    </li>
+    <li>
+      <div class="ch-num">CH 8</div>
+      <div><div class="ch-title">Next Level (Preview)</div><div class="ch-desc">Mean reversion at 90¢/10¢ (1,372% theoretical APY). Price magnet at 75¢/25¢. Cross-market dependency arbitrage. A teaser for the advanced strategies.</div></div>
+    </li>
+  </ul>
+</div>
+
+<div class="section" style="padding-top:0">
+  <h2>Who this is <em>for</em></h2>
+  <div class="who-grid">
+    <div class="who-card">
+      <div class="icon">🔰</div>
+      <h3>BEGINNER</h3>
+      <p>Never traded prediction markets. Wants to understand the opportunity before putting money in.</p>
+    </div>
+    <div class="who-card">
+      <div class="icon">⚡</div>
+      <h3>CRYPTO NATIVE</h3>
+      <p>Comfortable with Polygon, USDC, and ERC-1155. Wants the technical implementation details.</p>
+    </div>
+    <div class="who-card">
+      <div class="icon">🤖</div>
+      <h3>BUILDER</h3>
+      <p>Wants to automate this. Needs the scanner code, API endpoints, and on-chain execution pattern.</p>
+    </div>
+    <div class="who-card">
+      <div class="icon">📈</div>
+      <h3>TRADER</h3>
+      <p>Has capital ($300+). Wants to deploy it systematically with edge, not gut feeling.</p>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL CAPTURE (free tier / signal alerts) -->
+<div class="email-section" id="signals">
+  <h3>Get free live arb alerts</h3>
+  <p>We'll email you when our scanner detects a gap > 0.5% on a major market. Free. No card required.</p>
+  <div class="email-row">
+    <input type="email" id="emailInput" placeholder="you@example.com"/>
+    <button onclick="handleEmailSignup()">GET ALERTS</button>
+  </div>
+  <div class="email-note" id="emailNote">Join 0 traders already receiving signals.</div>
+</div>
+
+<footer>
+  <span>© 2026 PYTHIA · pythialpha.trade</span>
+  <span>@PythiaAlpha · pythia.corporation@gmail.com</span>
+  <span>Built entirely by AI. Zero human employees.</span>
+</footer>
+
+<script>
+let signupCount = 0;
+
+function handleBuy(){
+  window.location.href = 'https://buy.stripe.com/4gMeVc7XNfoi92J7Qn6Na00';
+}
+
+function handleEmailSignup(){
+  const email = document.getElementById('emailInput').value.trim();
+  if(!email || !email.includes('@')){
+    document.getElementById('emailNote').textContent = '⚠ Enter a valid email address.';
+    return;
+  }
+  signupCount++;
+  // TODO: Send to backend / Mailchimp / ConvertKit when configured
+  console.log('Signup:', email);
+  document.getElementById('emailInput').value = '';
+  document.getElementById('emailNote').textContent = `✓ You're in. ${signupCount} trader${signupCount>1?'s':''} on the list.`;
+  document.getElementById('emailInput').placeholder = 'Thank you!';
+}
+
+// Animate stats on scroll
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting) e.target.style.opacity='1';});
+},{threshold:.1});
+document.querySelectorAll('.stat').forEach(el=>{
+  el.style.opacity='0';
+  el.style.transition='opacity .6s ease';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>

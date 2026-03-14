@@ -1,0 +1,58 @@
+[package]
+name = "chain_executor"
+version = "0.1.0"
+edition = "2021"
+description = "On-chain executor for Polymarket merge arbitrage"
+
+[[bin]]
+name = "chain_executor"
+path = "src/main.rs"
+
+[lib]
+name = "chain_executor"
+path = "src/lib.rs"
+
+[dependencies]
+# Ethereum interaction
+alloy = { version = "0.4", features = [
+    "full",
+    "node-bindings",
+    "rpc-types-eth",
+    "provider-http",
+    "signer-local",
+    "contract",
+    "sol-types",
+    "signers",
+    "network",
+] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# CLI parsing
+clap = { version = "4", features = ["derive", "env"] }
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Env vars
+dotenvy = "0.15"
+
+# Hex encoding
+hex = "0.4"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

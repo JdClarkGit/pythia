@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARB-BOT | Strategy Performance</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="dot"></span>ARB-BOT
+    </div>
+    <div class="nav-links">
+      <a href="index.html"      class="nav-link">Dashboard</a>
+      <a href="strategies.html" class="nav-link active">Strategies</a>
+      <a href="scanner.html"    class="nav-link">Scanner</a>
+      <a href="trades.html"     class="nav-link">Trades</a>
+      <a href="wallet.html"     class="nav-link">Wallet</a>
+    </div>
+    <div class="nav-stats">
+      <div class="refresh-indicator">
+        <div class="refresh-dot" id="refresh-dot"></div>
+        <span id="refresh-countdown">30s</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Strategy Performance</div>
+        <div class="page-subtitle">Per-strategy win rates, returns, and capital allocation</div>
+      </div>
+      <button class="btn" id="refresh-btn">Refresh</button>
+    </div>
+
+    <!-- Strategy stat cards -->
+    <div class="strat-grid" id="strat-cards">
+      <!-- skeleton -->
+      <div class="strat-card"><div class="skeleton" style="height:120px;border-radius:8px"></div></div>
+      <div class="strat-card"><div class="skeleton" style="height:120px;border-radius:8px"></div></div>
+      <div class="strat-card"><div class="skeleton" style="height:120px;border-radius:8px"></div></div>
+      <div class="strat-card"><div class="skeleton" style="height:120px;border-radius:8px"></div></div>
+      <div class="strat-card"><div class="skeleton" style="height:120px;border-radius:8px"></div></div>
+    </div>
+
+    <!-- Summary table -->
+    <div class="panel" style="margin-bottom:var(--gap-lg)">
+      <div class="panel-header">
+        <span class="panel-title">Strategy Summary Table</span>
+      </div>
+      <div class="table-wrap">
+        <table id="strat-table">
+          <thead>
+            <tr>
+              <th data-col="name">Strategy</th>
+              <th data-col="win_rate" class="right">Win Rate</th>
+              <th data-col="avg_profit" class="right">Avg Profit</th>
+              <th data-col="total_trades" class="right">Total Trades</th>
+              <th data-col="capital" class="right">Capital</th>
+              <th data-col="ann_return" class="right">Ann. Return</th>
+              <th data-col="max_drawdown" class="right">Max DD</th>
+            </tr>
+          </thead>
+          <tbody id="strat-tbody">
+            <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Profit by Strategy (Weekly)</span>
+        <span class="text-muted" style="font-size:0.72rem">Last 12 weeks</span>
+      </div>
+      <div class="chart-container" style="height:300px">
+        <canvas id="bar-canvas"></canvas>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { fetchStrategies } from './js/api.js';
+  import { createStrategyBarChart } from './js/charts.js';
+
+  const STRAT_COLORS = {
+    MERGE_ARB:    { tag:'tag-merge',    color:'#00ff88' },
+    MEAN_REV:     { tag:'tag-mean-rev', color:'#3b82f6' },
+    PRICE_MAGNET: { tag:'tag-price-mag',color:'#a855f7' },
+    DEPENDENCY:   { tag:'tag-dependency',color:'#f59e0b' },
+    CROSS_MARKET: { tag:'tag-cross',    color:'#ec4899' },
+  };
+
+  let barChart = null;
+  let pollTimer;
+  let lastUpdate = Date.now();
+
+  async function load() {
+    const dot = document.getElementById('refresh-dot');
+    if (dot) { dot.classList.add('active'); setTimeout(()=>dot.classList.remove('active'),800); }
+    lastUpdate = Date.now();
+
+    const strats = await fetchStrategies();
+    if (!strats) return;
+
+    renderCards(strats);
+    renderTable(strats);
+
+    if (!barChart) {
+      barChart = createStrategyBarChart('bar-canvas', strats);
+    } else {
+      barChart.data.datasets.forEach((ds, i) => { ds.data = strats[i]?.weekly ?? []; });
+      barChart.update('active');
+    }
+  }
+
+  function renderCards(strats) {
+    const el = document.getElementById('strat-cards');
+    if (!el) return;
+    el.innerHTML = strats.map(s => {
+      const sc = STRAT_COLORS[s.name] ?? { tag:'tag-none', color:'#888899' };
+      const winColor = s.win_rate >= 70 ? 'var(--success)' : s.win_rate >= 55 ? 'var(--warning)' : 'var(--danger)';
+      return `<div class="strat-card">
+        <div class="strat-card-header">
+          <span class="strat-name" style="color:${sc.color}">${s.name.replace('_',' ')}</span>
+          <span class="tag ${sc.tag}">${s.name}</span>
+        </div>
+        <div class="strat-metrics">
+          <div class="strat-metric">
+            <span class="strat-metric-label">Win Rate</span>
+            <span class="strat-metric-value" style="color:${winColor}">${s.win_rate.toFixed(1)}%</span>
+          </div>
+          <div class="strat-metric">
+            <span class="strat-metric-label">Avg Profit</span>
+            <span class="strat-metric-value pos">+${s.avg_profit.toFixed(2)}%</span>
+          </div>
+          <div class="strat-metric">
+            <span class="strat-metric-label">Total Trades</span>
+            <span class="strat-metric-value">${s.total_trades}</span>
+          </div>
+          <div class="strat-metric">
+            <span class="strat-metric-label">Capital</span>
+            <span class="strat-metric-value">$${s.capital.toLocaleString()}</span>
+          </div>
+          <div class="strat-metric">
+            <span class="strat-metric-label">Ann. Return</span>
+            <span class="strat-metric-value pos">+${s.ann_return.toFixed(1)}%</span>
+          </div>
+          <div class="strat-metric">
+            <span class="strat-metric-label">Max Drawdown</span>
+            <span class="strat-metric-value neg">-${s.max_drawdown.toFixed(1)}%</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderTable(strats) {
+    const tbody = document.getElementById('strat-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = strats.map(s => {
+      const sc = STRAT_COLORS[s.name] ?? { tag:'tag-none', color:'#888899' };
+      return `<tr>
+        <td><span class="tag ${sc.tag}">${s.name}</span></td>
+        <td class="num right ${s.win_rate>=70?'pos':s.win_rate>=55?'':''}">${s.win_rate.toFixed(1)}%</td>
+        <td class="num right pos">+${s.avg_profit.toFixed(3)}%</td>
+        <td class="num right">${s.total_trades}</td>
+        <td class="num right">$${s.capital.toLocaleString()}</td>
+        <td class="num right pos">+${s.ann_return.toFixed(1)}%</td>
+        <td class="num right neg">-${s.max_drawdown.toFixed(1)}%</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    load();
+    pollTimer = setInterval(load, 30_000);
+    setInterval(() => {
+      const el = document.getElementById('refresh-countdown');
+      if (!el) return;
+      const remaining = Math.max(0, 30 - Math.floor((Date.now()-lastUpdate)/1000));
+      el.textContent = `${remaining}s`;
+    }, 1000);
+    document.getElementById('refresh-btn')?.addEventListener('click', load);
+  });
+</script>
+</body>
+</html>

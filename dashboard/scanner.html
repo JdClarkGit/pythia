@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARB-BOT | Market Scanner</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="dot"></span>ARB-BOT
+    </div>
+    <div class="nav-links">
+      <a href="index.html"      class="nav-link">Dashboard</a>
+      <a href="strategies.html" class="nav-link">Strategies</a>
+      <a href="scanner.html"    class="nav-link active">Scanner</a>
+      <a href="trades.html"     class="nav-link">Trades</a>
+      <a href="wallet.html"     class="nav-link">Wallet</a>
+    </div>
+    <div class="nav-stats">
+      <div class="refresh-indicator">
+        <div class="refresh-dot" id="refresh-dot"></div>
+        <span id="refresh-countdown">10s</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Market Scanner</div>
+        <div class="page-subtitle">
+          <span id="market-count">—</span> active markets
+        </div>
+      </div>
+      <button class="btn" id="refresh-btn">Refresh Now</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="panel" style="margin-bottom:var(--gap-md)">
+      <div class="panel-body">
+        <div class="filter-bar">
+          <input type="search" id="search-input" placeholder="Search market name…" autocomplete="off">
+          <select id="signal-filter">
+            <option value="">All Signals</option>
+            <option value="MERGE_ARB">MERGE_ARB</option>
+            <option value="MEAN_REV">MEAN_REV</option>
+            <option value="PRICE_MAGNET">PRICE_MAGNET</option>
+            <option value="DEPENDENCY">DEPENDENCY</option>
+            <option value="NONE">NONE</option>
+          </select>
+          <select id="regime-filter">
+            <option value="">All Regimes</option>
+            <option value="tight">Tight</option>
+            <option value="wide">Wide</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scanner table -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Active Markets</span>
+        <span class="panel-badge" id="filtered-count">—</span>
+      </div>
+      <div class="table-wrap" style="max-height:calc(100vh - 320px)">
+        <table id="scanner-table">
+          <thead>
+            <tr>
+              <th data-col="question" style="min-width:260px">Market</th>
+              <th data-col="yes_price" class="right">YES</th>
+              <th data-col="no_price"  class="right">NO</th>
+              <th data-col="combined"  class="right">Combined</th>
+              <th data-col="regime">Regime</th>
+              <th data-col="imbalance" style="min-width:140px">Imbalance</th>
+              <th data-col="micro_score">Micro Score</th>
+              <th data-col="signal">Signal</th>
+              <th data-col="volume_24h" class="right">Vol 24h</th>
+            </tr>
+          </thead>
+          <tbody id="scanner-tbody">
+            <tr><td colspan="9"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="9"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="9"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="9"><div class="skeleton skeleton-row"></div></td></tr>
+            <tr><td colspan="9"><div class="skeleton skeleton-row"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { initScanner, refresh } from './js/scanner.js';
+
+  let pollTimer;
+  let lastUpdate = Date.now();
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await initScanner({
+      tableId:        'scanner-table',
+      searchId:       'search-input',
+      signalFilterId: 'signal-filter',
+      countId:        'filtered-count',
+      refreshId:      'refresh-dot-wrap',
+    });
+
+    // Update market-count from filtered-count observer
+    const filteredEl = document.getElementById('filtered-count');
+    const totalEl    = document.getElementById('market-count');
+    if (filteredEl && totalEl) {
+      new MutationObserver(() => {
+        totalEl.textContent = filteredEl.textContent;
+      }).observe(filteredEl, { childList:true, characterData:true, subtree:true });
+    }
+
+    // Regime filter (client-side post-filter)
+    document.getElementById('regime-filter')?.addEventListener('change', e => {
+      const val = e.target.value;
+      const tbody = document.getElementById('scanner-tbody');
+      tbody?.querySelectorAll('tr').forEach(tr => {
+        if (!val) { tr.style.display=''; return; }
+        const regimeEl = tr.querySelector('.regime');
+        tr.style.display = (!regimeEl || regimeEl.textContent.trim() === val) ? '' : 'none';
+      });
+    });
+
+    // Auto poll
+    pollTimer = setInterval(async () => {
+      lastUpdate = Date.now();
+      const dot = document.querySelector('.refresh-dot');
+      if (dot) { dot.classList.add('active'); setTimeout(()=>dot.classList.remove('active'),800); }
+      // Re-init scanner to get fresh data
+      await initScanner({
+        tableId:        'scanner-table',
+        searchId:       'search-input',
+        signalFilterId: 'signal-filter',
+        countId:        'filtered-count',
+        refreshId:      null,
+      });
+    }, 10_000);
+
+    setInterval(() => {
+      const el = document.getElementById('refresh-countdown');
+      if (!el) return;
+      const r = Math.max(0, 10 - Math.floor((Date.now()-lastUpdate)/1000));
+      el.textContent = `${r}s`;
+    }, 1000);
+
+    document.getElementById('refresh-btn')?.addEventListener('click', async () => {
+      lastUpdate = Date.now();
+      await initScanner({
+        tableId: 'scanner-table', searchId: 'search-input',
+        signalFilterId: 'signal-filter', countId: 'filtered-count', refreshId: null,
+      });
+    });
+  });
+</script>
+</body>
+</html>
