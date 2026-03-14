@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pythia Bot-as-a-Service — Run the Arb Bot on Your API Keys · $99/mo</title>
+<meta name="description" content="Let Pythia's arb bot run on your Polymarket API keys. It scans, executes, and merges 24/7. You keep 100% of profits. $99/mo."/>
+<link rel="canonical" href="https://pythialpha.trade/bot"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--gold-dim:#8B6914;--bg:#050505;--surface:#0d0d0d;--border:#1a1a1a;--text:#e8e8e8;--muted:#666;--green:#4ade80;--purple:#a78bfa}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;min-height:100vh}
+nav{border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;letter-spacing:2px;color:var(--gold);font-style:italic;text-decoration:none}
+.logo span{font-size:10px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal}
+nav a{font-size:12px;color:var(--muted);letter-spacing:1px;font-family:monospace;text-decoration:none}
+nav a:hover{color:var(--gold)}
+.hero{max-width:760px;margin:0 auto;padding:72px 24px 48px}
+.badge{display:inline-block;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);color:var(--purple);font-size:11px;letter-spacing:3px;padding:5px 14px;margin-bottom:28px;font-family:monospace}
+h1{font-size:clamp(32px,5vw,52px);line-height:1.1;font-weight:400;margin-bottom:20px}
+h1 em{color:var(--gold);font-style:normal}
+.sub{font-size:17px;color:#aaa;line-height:1.6;margin-bottom:48px;font-family:sans-serif}
+.warning{background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.2);padding:14px 20px;font-family:monospace;font-size:12px;color:var(--gold);margin-bottom:48px;letter-spacing:.5px}
+
+/* SPEC GRID */
+.section{max-width:760px;margin:0 auto;padding:0 24px 48px}
+h2{font-size:26px;font-weight:400;margin-bottom:28px}
+h2 em{color:var(--gold);font-style:normal}
+.spec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:48px}
+.spec{background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:6px}
+.spec-label{font-size:10px;letter-spacing:2px;color:var(--muted);font-family:monospace}
+.spec-val{font-size:15px;color:var(--text);font-family:sans-serif}
+.spec-val em{color:var(--green);font-style:normal}
+
+/* PRICING */
+.price-card{background:var(--surface);border:1px solid var(--gold-dim);padding:32px;max-width:400px;margin:0 auto 48px}
+.price-card .p-name{font-size:12px;letter-spacing:3px;color:var(--muted);font-family:monospace;margin-bottom:12px}
+.price-card .p-price{font-size:52px;color:var(--gold);font-family:monospace;line-height:1;margin-bottom:4px}
+.price-card .p-price span{font-size:16px;color:var(--muted)}
+.price-card .p-note{font-size:12px;color:var(--muted);font-family:sans-serif;margin-bottom:24px}
+.price-card ul{list-style:none;margin-bottom:28px}
+.price-card ul li{font-size:14px;color:#ccc;font-family:sans-serif;padding:6px 0;display:flex;gap:10px;border-bottom:1px solid var(--border)}
+.price-card ul li:last-child{border-bottom:none}
+.price-card ul li::before{content:'✓';color:var(--green);flex-shrink:0}
+.cta-btn{display:block;width:100%;padding:15px;background:var(--gold);color:#000;font-family:monospace;font-size:13px;letter-spacing:2px;font-weight:bold;border:none;cursor:pointer;text-align:center;text-decoration:none}
+.cta-btn:hover{opacity:.88}
+
+/* HOW */
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:48px}
+.flow-step{background:var(--surface);border:1px solid var(--border);padding:20px;text-align:center}
+.flow-step .f-num{font-size:28px;color:var(--gold-dim);font-family:monospace;margin-bottom:8px}
+.flow-step .f-title{font-size:13px;color:var(--text);margin-bottom:6px}
+.flow-step .f-desc{font-size:12px;color:var(--muted);font-family:sans-serif;line-height:1.5}
+
+/* FAQ */
+.faq{border-bottom:1px solid var(--border);padding:20px 0}
+.faq h3{font-size:15px;font-weight:400;margin-bottom:8px}
+.faq p{font-size:14px;color:var(--muted);font-family:sans-serif;line-height:1.6}
+
+/* WAITLIST */
+.waitlist{background:var(--surface);border:1px solid var(--border);padding:32px;max-width:760px;margin:0 auto 80px}
+.waitlist h3{font-size:22px;font-weight:400;margin-bottom:8px}
+.waitlist p{color:var(--muted);font-size:14px;font-family:sans-serif;margin-bottom:20px}
+.waitlist form{display:flex;gap:8px;max-width:460px}
+.waitlist input{flex:1;background:#080808;border:1px solid var(--border);color:var(--text);padding:12px 14px;font-family:monospace;font-size:13px;outline:none}
+.waitlist button{padding:12px 20px;background:var(--gold);border:none;color:#000;font-family:monospace;font-size:12px;letter-spacing:2px;font-weight:bold;cursor:pointer;white-space:nowrap}
+
+footer{border-top:1px solid var(--border);padding:20px 32px;font-size:11px;color:var(--muted);font-family:monospace;text-align:center}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">PYTHIA<span>pythialpha.trade</span></a>
+  <div style="display:flex;gap:24px">
+    <a href="/signals.html">SIGNALS</a>
+    <a href="/calculator.html">CALCULATOR</a>
+    <a href="/#buy" style="color:var(--gold)">$9 PLAYBOOK →</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="badge">⚙️ BOT-AS-A-SERVICE — COMING SOON</div>
+  <h1>The bot runs.<br/>You <em>keep everything.</em></h1>
+  <p class="sub">Pythia's merge arb bot runs 24/7 on your Polymarket API keys and your USDC. It scans 10,000+ markets, executes trades, merges on-chain, and recycles capital automatically. You keep 100% of the profits.</p>
+  <div class="warning">⚠ You keep all profits. Pythia charges a flat $99/mo fee — no performance cut, no hidden rake. Your keys, your wallet, your money.</div>
+</div>
+
+<div class="section">
+  <h2>What the bot <em>does</em></h2>
+  <div class="spec-grid">
+    <div class="spec"><div class="spec-label">SCAN FREQUENCY</div><div class="spec-val">Every <em>30 seconds</em> (Gamma API) + real-time CLOB</div></div>
+    <div class="spec"><div class="spec-label">MARKETS COVERED</div><div class="spec-val"><em>10,000+</em> active Polymarket conditions</div></div>
+    <div class="spec"><div class="spec-label">STRATEGIES</div><div class="spec-val">Merge arb, maker arb, <em>mean reversion</em></div></div>
+    <div class="spec"><div class="spec-label">EXECUTION</div><div class="spec-val">EIP-712 signed orders via <em>CLOB API</em></div></div>
+    <div class="spec"><div class="spec-label">ON-CHAIN MERGE</div><div class="spec-val">Auto-calls <em>mergePositions()</em> on Polygon</div></div>
+    <div class="spec"><div class="spec-label">CAPITAL SIZING</div><div class="spec-val"><em>Quarter-Kelly</em> with 30% position cap</div></div>
+    <div class="spec"><div class="spec-label">FEE TARGETING</div><div class="spec-val">Prioritizes <em>zero-fee</em> markets first</div></div>
+    <div class="spec"><div class="spec-label">SETTLEMENT</div><div class="spec-val"><em>~3 seconds</em>. Capital redeployed immediately.</div></div>
+  </div>
+
+  <h2>How it <em>works</em></h2>
+  <div class="flow">
+    <div class="flow-step"><div class="f-num">01</div><div class="f-title">You provide keys</div><div class="f-desc">Your Polymarket API key + Polygon wallet private key. Stored encrypted. Never shared.</div></div>
+    <div class="flow-step"><div class="f-num">02</div><div class="f-title">Bot activates</div><div class="f-desc">Pythia's infrastructure runs your instance. Scanning starts immediately.</div></div>
+    <div class="flow-step"><div class="f-num">03</div><div class="f-title">Gap found → trade fires</div><div class="f-desc">Scanner detects YES + NO &lt; $1.00. Bot places maker orders on both sides.</div></div>
+    <div class="flow-step"><div class="f-num">04</div><div class="f-title">Merge → profit</div><div class="f-desc">Once filled, mergePositions() fires on Polygon. USDC back in 3 seconds.</div></div>
+    <div class="flow-step"><div class="f-num">05</div><div class="f-title">Capital recycles</div><div class="f-desc">Same USDC immediately redeployed into the next opportunity.</div></div>
+    <div class="flow-step"><div class="f-num">06</div><div class="f-title">You watch the P&L</div><div class="f-desc">Live dashboard shows trades, profit, open positions, wallet balance.</div></div>
+  </div>
+</div>
+
+<!-- Pricing -->
+<div class="section" style="text-align:center">
+  <h2>Simple <em>pricing</em></h2>
+  <div class="price-card">
+    <div class="p-name">BOT-AS-A-SERVICE</div>
+    <div class="p-price">$99<span>/mo</span></div>
+    <div class="p-note">Flat fee. No performance cut. No rake. Cancel anytime.</div>
+    <ul>
+      <li>Full merge arb bot running 24/7</li>
+      <li>Your keys, your wallet, your profits</li>
+      <li>Live P&L dashboard</li>
+      <li>Telegram alerts on each trade</li>
+      <li>Merge arb + maker arb + mean reversion</li>
+      <li>Dedicated bot instance (not shared)</li>
+      <li>Priority support</li>
+    </ul>
+    <a href="#waitlist" class="cta-btn">JOIN WAITLIST →</a>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="section">
+  <h2>FAQ</h2>
+  <div class="faq"><h3>Is my private key safe?</h3><p>Your key is encrypted at rest using AES-256 and used only to sign Polygon transactions. It never leaves our infrastructure unencrypted and is never logged or shared. That said — only deposit what you're comfortable with and use a fresh wallet.</p></div>
+  <div class="faq"><h3>What's the minimum capital?</h3><p>The bot works with as little as $100 USDC. More capital = more opportunities seized simultaneously. We recommend $500+ to meaningfully compound.</p></div>
+  <div class="faq"><h3>What returns should I expect?</h3><p>We don't guarantee returns. Historically, merge arb has delivered 40-200%+ APY at scale, but this depends on opportunity frequency, capital size, and market conditions. Start with a small amount and observe before scaling up.</p></div>
+  <div class="faq"><h3>When does this launch?</h3><p>We're running the bot on our own capital first to build a verified 30-day live performance record. Waitlist members get first access when we open.</p></div>
+  <div class="faq"><h3>Can I cancel anytime?</h3><p>Yes. Cancel and the bot stops. Your wallet, your keys — you can withdraw at any time regardless of subscription status.</p></div>
+</div>
+
+<!-- Waitlist -->
+<div class="waitlist" id="waitlist">
+  <h3>Join the waitlist</h3>
+  <p>We'll onboard waitlist members first when BaaS launches. Drop your email.</p>
+  <form action="https://formsubmit.co/pythia.corporation@gmail.com" method="POST">
+    <input type="hidden" name="_subject" value="Pythia BaaS — Waitlist Signup"/>
+    <input type="hidden" name="_captcha" value="false"/>
+    <input type="hidden" name="_next" value="https://pythialpha.trade/thanks.html"/>
+    <input type="email" name="email" required placeholder="your@email.com"/>
+    <button type="submit">JOIN →</button>
+  </form>
+</div>
+
+<footer>© 2026 PYTHIA · pythialpha.trade · @PythiaAlpha · Built entirely by AI.</footer>
+</body>
+</html>

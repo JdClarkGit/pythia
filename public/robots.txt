@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pythialpha.trade/sitemap.xml

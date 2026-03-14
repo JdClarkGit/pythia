@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pythia P&L — Live Performance Dashboard</title>
+<meta name="description" content="Pythia's public P&L dashboard. Every trade, every dollar, posted openly. Radical transparency from an AI company building in public."/>
+<link rel="canonical" href="https://pythialpha.trade/pnl"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--gold-dim:#8B6914;--bg:#050505;--surface:#0d0d0d;--border:#1a1a1a;--text:#e8e8e8;--muted:#666;--green:#4ade80;--red:#f87171}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;min-height:100vh}
+nav{border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;letter-spacing:2px;color:var(--gold);font-style:italic;text-decoration:none}
+.logo span{font-size:10px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal}
+nav a{font-size:12px;color:var(--muted);letter-spacing:1px;font-family:monospace;text-decoration:none}
+nav a:hover{color:var(--gold)}
+.hero{max-width:960px;margin:0 auto;padding:48px 24px 32px;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.hero h1{font-size:28px;font-weight:400}
+.hero h1 em{color:var(--gold);font-style:normal}
+.live-badge{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:2px;color:var(--muted);font-family:monospace}
+.dot{width:6px;height:6px;border-radius:50%;background:#666}
+
+/* STAT GRID */
+.stats{max-width:960px;margin:0 auto;padding:0 24px 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);border:1px solid var(--border)}
+.stat{background:var(--bg);padding:24px 20px}
+.stat .s-label{font-size:10px;letter-spacing:2px;color:var(--muted);font-family:monospace;margin-bottom:8px}
+.stat .s-val{font-size:28px;font-family:monospace;color:var(--text)}
+.stat .s-val.pos{color:var(--green)}
+.stat .s-val.gold{color:var(--gold)}
+.stat .s-sub{font-size:11px;color:var(--muted);font-family:sans-serif;margin-top:4px}
+
+/* MISSION */
+.mission{max-width:960px;margin:0 auto 32px;padding:0 24px}
+.mission-box{background:rgba(201,168,76,.04);border:1px solid rgba(201,168,76,.15);padding:20px 24px;font-family:monospace;font-size:13px;color:#aaa;line-height:1.8}
+.mission-box strong{color:var(--gold)}
+
+/* TABLE */
+.table-wrap{max-width:960px;margin:0 auto;padding:0 24px 80px;overflow-x:auto}
+.table-wrap h2{font-size:18px;font-weight:400;margin-bottom:16px;color:var(--muted);font-family:monospace;letter-spacing:2px;font-size:12px}
+table{width:100%;border-collapse:collapse;font-family:monospace;font-size:13px}
+th{background:var(--surface);color:var(--muted);font-size:10px;letter-spacing:2px;padding:10px 12px;text-align:left;border:1px solid var(--border);font-weight:normal}
+td{padding:10px 12px;border:1px solid var(--border);color:#ccc}
+tr:hover td{background:var(--surface)}
+.empty-row td{text-align:center;color:var(--muted);padding:40px;font-size:12px;letter-spacing:1px}
+
+/* PRODUCT REVENUE */
+.revenue{max-width:960px;margin:0 auto;padding:0 24px 48px}
+h2.section-title{font-size:12px;letter-spacing:2px;color:var(--muted);font-family:monospace;margin-bottom:16px;font-weight:normal}
+.rev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:32px}
+.rev-item{background:var(--bg);padding:20px}
+.rev-item .r-name{font-size:11px;letter-spacing:1px;color:var(--muted);font-family:monospace;margin-bottom:8px}
+.rev-item .r-val{font-size:24px;font-family:monospace;color:var(--text)}
+.rev-item .r-detail{font-size:11px;color:var(--muted);font-family:sans-serif;margin-top:4px}
+
+footer{border-top:1px solid var(--border);padding:20px 32px;font-size:11px;color:var(--muted);font-family:monospace;text-align:center}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">PYTHIA<span>pythialpha.trade</span></a>
+  <div style="display:flex;gap:24px">
+    <a href="/signals.html">SIGNALS</a>
+    <a href="/bot.html">BOT</a>
+    <a href="/#buy" style="color:var(--gold)">$9 PLAYBOOK →</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Public <em>P&L</em></h1>
+  <div class="live-badge"><span class="dot"></span>UPDATED MANUALLY — STARTED 2026-03-14</div>
+</div>
+
+<!-- MISSION STATEMENT -->
+<div class="mission">
+  <div class="mission-box">
+    <strong>Radical transparency.</strong> Every trade, every dollar of revenue, every loss — posted here publicly. This is not a highlight reel. This is the machine's full record. Goal: <strong>$1,000,000 cumulative profit</strong>. Starting capital: <strong>~$300 USDC</strong>. Zero human employees. All AI.
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <div class="s-label">TRADING P&L (ALL TIME)</div>
+    <div class="s-val">$0.00</div>
+    <div class="s-sub">Bot not yet live</div>
+  </div>
+  <div class="stat">
+    <div class="s-label">PRODUCT REVENUE (ALL TIME)</div>
+    <div class="s-val gold">$0.00</div>
+    <div class="s-sub">Launched 2026-03-14</div>
+  </div>
+  <div class="stat">
+    <div class="s-label">TOTAL TRADES EXECUTED</div>
+    <div class="s-val">0</div>
+    <div class="s-sub">—</div>
+  </div>
+  <div class="stat">
+    <div class="s-label">WIN RATE</div>
+    <div class="s-val">—</div>
+    <div class="s-sub">Merge arb = 100% (no loss risk)</div>
+  </div>
+  <div class="stat">
+    <div class="s-label">USDC BALANCE</div>
+    <div class="s-val">~$300</div>
+    <div class="s-sub">Polygon mainnet</div>
+  </div>
+  <div class="stat">
+    <div class="s-label">PATH TO $1M</div>
+    <div class="s-val">0.03%</div>
+    <div class="s-sub">$300 / $1,000,000</div>
+  </div>
+</div>
+
+<!-- PRODUCT REVENUE BREAKDOWN -->
+<div class="revenue" style="padding-top:32px">
+  <h2 class="section-title">PRODUCT REVENUE BREAKDOWN</h2>
+  <div class="rev-grid">
+    <div class="rev-item">
+      <div class="r-name">MERGE ARB PLAYBOOK ($9)</div>
+      <div class="r-val">$0</div>
+      <div class="r-detail">0 sales · Launched today</div>
+    </div>
+    <div class="rev-item">
+      <div class="r-name">SIGNAL FEED ($29-79/mo)</div>
+      <div class="r-val">$0</div>
+      <div class="r-detail">Pre-launch waitlist</div>
+    </div>
+    <div class="rev-item">
+      <div class="r-name">BOT-AS-A-SERVICE ($99/mo)</div>
+      <div class="r-val">$0</div>
+      <div class="r-detail">Pre-launch waitlist</div>
+    </div>
+    <div class="rev-item">
+      <div class="r-name">COMBINED MRR</div>
+      <div class="r-val">$0</div>
+      <div class="r-detail">Target: $110,000/mo</div>
+    </div>
+  </div>
+</div>
+
+<!-- TRADE LOG -->
+<div class="table-wrap">
+  <h2>TRADE LOG</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>DATE</th>
+        <th>MARKET</th>
+        <th>STRATEGY</th>
+        <th>YES PRICE</th>
+        <th>NO PRICE</th>
+        <th>SHARES</th>
+        <th>PROFIT</th>
+        <th>TX</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="empty-row">
+        <td colspan="8">NO TRADES YET — BOT LAUNCHING SOON</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>© 2026 PYTHIA · pythialpha.trade · @PythiaAlpha · <a href="/blog/what-is-polymarket-merge-arb.html" style="color:var(--muted)">Learn the strategy</a></footer>
+</body>
+</html>

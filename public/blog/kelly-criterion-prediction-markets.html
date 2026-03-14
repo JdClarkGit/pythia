@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Kelly Criterion for Prediction Markets — Optimal Sizing for Polymarket Arb</title>
+<meta name="description" content="How to use the Kelly Criterion to size positions in Polymarket arb strategies. Full-Kelly vs quarter-Kelly, the math, worked examples, and why over-betting is the #1 killer of small accounts."/>
+<meta name="keywords" content="kelly criterion prediction markets, kelly criterion polymarket, position sizing prediction markets, optimal bet sizing crypto"/>
+<link rel="canonical" href="https://pythialpha.trade/blog/kelly-criterion-prediction-markets"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--bg:#050505;--surface:#0d0d0d;--border:#1a1a1a;--text:#e8e8e8;--muted:#888}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;line-height:1.7}
+nav{border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;letter-spacing:2px;color:var(--gold);font-style:italic;text-decoration:none}
+.logo span{font-size:10px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal}
+article{max-width:720px;margin:0 auto;padding:60px 24px 100px}
+.eyebrow{font-size:11px;letter-spacing:3px;color:var(--gold);font-family:monospace;margin-bottom:16px}
+h1{font-size:clamp(28px,4vw,44px);font-weight:400;line-height:1.15;margin-bottom:20px}
+h1 em{color:var(--gold);font-style:normal}
+.meta{font-size:12px;color:var(--muted);font-family:monospace;margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+h2{font-size:22px;font-weight:400;margin:44px 0 14px}
+h2 em{color:var(--gold);font-style:normal}
+p{margin-bottom:18px;color:#ccc;font-size:16px}
+code{background:#111;border:1px solid var(--border);padding:2px 6px;font-size:13px;color:var(--gold);font-family:monospace}
+pre{background:#0a0a0a;border:1px solid var(--border);border-left:3px solid var(--gold);padding:20px;margin:24px 0;overflow-x:auto;font-family:monospace;font-size:13px;color:#ccc;line-height:1.7}
+.callout{background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);padding:18px 22px;margin:28px 0}
+.callout strong{color:var(--gold);display:block;margin-bottom:6px;font-family:monospace;font-size:11px;letter-spacing:2px}
+.callout p{margin:0;font-size:15px}
+table{width:100%;border-collapse:collapse;margin:24px 0;font-size:14px}
+th{background:#111;color:var(--gold);font-family:monospace;font-size:10px;letter-spacing:2px;padding:10px 14px;text-align:left;border:1px solid var(--border)}
+td{padding:10px 14px;border:1px solid var(--border);color:#ccc;font-family:sans-serif}
+tr:nth-child(even) td{background:#080808}
+.cta{background:var(--surface);border:1px solid var(--border);padding:28px;margin:56px 0 0;text-align:center}
+.cta h3{font-size:20px;font-weight:400;margin-bottom:8px}
+.cta p{color:var(--muted);font-size:13px;margin-bottom:20px;font-family:sans-serif}
+.cta a{display:inline-block;background:var(--gold);color:#000;padding:12px 28px;font-family:monospace;font-size:12px;letter-spacing:2px;font-weight:bold;text-decoration:none}
+footer{border-top:1px solid var(--border);padding:20px 32px;font-size:11px;color:var(--muted);font-family:monospace;text-align:center}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">PYTHIA<span>pythialpha.trade</span></a>
+  <a href="/#buy" style="font-size:12px;color:var(--gold);font-family:monospace;text-decoration:none">GET THE PLAYBOOK →</a>
+</nav>
+<article>
+  <div class="eyebrow">🔮 PYTHIA ALPHA — STRATEGY BREAKDOWN</div>
+  <h1><em>Kelly Criterion</em> for Prediction Markets</h1>
+  <div class="meta">By Pythia · March 2026 · 7 min read · <a href="/calculator.html" style="color:var(--gold)">Try the free calculator →</a></div>
+
+  <p>The single most common way small accounts blow up isn't a bad strategy — it's correct strategy with catastrophically wrong position sizing. The Kelly Criterion is the mathematical solution to this. Here's how to apply it specifically to Polymarket arb.</p>
+
+  <h2>What Kelly <em>Actually Is</em></h2>
+
+  <p>The Kelly Criterion is a formula that tells you what fraction of your bankroll to risk on any given trade to maximize the long-run geometric growth rate of your capital. It was developed by John L. Kelly Jr. at Bell Labs in 1956, originally for signal transmission, and later applied to gambling and investing.</p>
+
+  <p>The general form:</p>
+
+  <pre>f* = (b × p - q) / b
+
+Where:
+  f* = fraction of bankroll to bet
+  b  = net odds received (profit per $1 risked)
+  p  = probability of winning
+  q  = probability of losing (1 - p)</pre>
+
+  <p>For merge arbitrage — where the outcome is guaranteed if you hold both sides — the formula simplifies significantly.</p>
+
+  <h2>Kelly for <em>Merge Arb</em></h2>
+
+  <p>In merge arb, there is no probability of losing (assuming you hold both YES and NO before merging). The only "risk" is execution risk — the orders not filling, or filling at worse prices than expected. Modeled simply:</p>
+
+  <pre># Merge arb Kelly formula
+edge = profit_per_share / total_cost
+
+# Full Kelly
+f_full = edge / (1 + edge)
+
+# Example: YES=$0.47, NO=$0.51
+# profit = $0.02, cost = $0.98
+# edge = 0.02 / 0.98 = 2.04%
+# f_full = 0.0204 / 1.0204 = 2.0%</pre>
+
+  <p>Full Kelly says risk 2% of your bankroll on a 2% edge trade. Sounds right. So why don't we use full Kelly?</p>
+
+  <h2>Why <em>Quarter-Kelly</em></h2>
+
+  <p>Full Kelly maximizes the expected log of wealth — the mathematically optimal strategy for long-run growth. But it has two serious problems in practice:</p>
+
+  <ul style="margin:0 0 20px 24px;color:#ccc;font-size:16px;line-height:2.2">
+    <li><strong>Estimation error</strong> — your edge estimate is never perfect. If your real edge is 1.5% but you calculate 2%, full Kelly over-bets by 33%.</li>
+    <li><strong>Drawdowns</strong> — full Kelly produces gut-wrenching drawdowns. 50% drawdowns are mathematically expected. Most traders abandon a strategy during a drawdown.</li>
+  </ul>
+
+  <p>Quarter-Kelly (25% of full Kelly) solves both:</p>
+
+  <pre>f_quarter = (edge / (1 + edge)) × 0.25
+
+# Same example:
+# f_quarter = 2.0% × 0.25 = 0.5% of bankroll per trade</pre>
+
+  <p>The tradeoff is worth it:</p>
+
+  <table>
+    <tr><th>Sizing</th><th>Long-run Growth</th><th>Max Expected Drawdown</th></tr>
+    <tr><td>Full Kelly</td><td>100% (maximum)</td><td>~50%</td></tr>
+    <tr><td>Half Kelly</td><td>~75%</td><td>~25%</td></tr>
+    <tr><td>Quarter Kelly</td><td>~87%</td><td>~12%</td></tr>
+    <tr><td>Tenth Kelly</td><td>~55%</td><td>~5%</td></tr>
+  </table>
+
+  <p>Quarter-Kelly captures 87% of full Kelly's growth rate with a 12% max expected drawdown. For a small account where survival matters, this is the correct choice.</p>
+
+  <h2>Position Size <em>Limits</em></h2>
+
+  <p>Two hard caps apply on top of Kelly sizing:</p>
+
+  <pre>MAX_POSITION_FRACTION = 0.30   # Never more than 30% of capital per trade
+MIN_PROFIT_DOLLARS = 0.10      # Skip trades where expected $ profit < $0.10
+CAPITAL_RESERVE = 0.20         # Keep 20% in reserve for gas + emergencies
+
+# Final position size:
+kelly_size = capital × f_quarter
+max_size = capital × 0.30
+position = min(kelly_size, max_size)</pre>
+
+  <div class="callout">
+    <strong>THE RESERVE RULE</strong>
+    <p>Always keep 20% of capital in reserve. Gas fees on Polygon are tiny (~$0.005/merge) but during network congestion they can spike. Running out of MATIC for gas means you can't execute merges — your USDC is trapped holding positions. Reserve prevents this.</p>
+  </div>
+
+  <h2>Worked <em>Examples</em></h2>
+
+  <table>
+    <tr><th>Capital</th><th>YES Price</th><th>NO Price</th><th>Edge</th><th>Quarter-Kelly %</th><th>Position Size</th><th>Expected Profit</th></tr>
+    <tr><td>$300</td><td>$0.47</td><td>$0.51</td><td>2.04%</td><td>0.50%</td><td>$1.50</td><td>$0.03</td></tr>
+    <tr><td>$300</td><td>$0.43</td><td>$0.54</td><td>3.09%</td><td>0.75%</td><td>$2.25</td><td>$0.07</td></tr>
+    <tr><td>$300</td><td>$0.38</td><td>$0.57</td><td>5.26%</td><td>1.25%</td><td>$3.75</td><td>$0.19</td></tr>
+    <tr><td>$3,000</td><td>$0.47</td><td>$0.51</td><td>2.04%</td><td>0.50%</td><td>$15.00</td><td>$0.31</td></tr>
+    <tr><td>$30,000</td><td>$0.47</td><td>$0.51</td><td>2.04%</td><td>0.50%</td><td>$150.00</td><td>$3.06</td></tr>
+  </table>
+
+  <p>The compounding effect is what makes this viable. At $300 you're making $0.03-$0.20 per trade — but those profits reinvest immediately, grow the capital base, and increase subsequent position sizes. This is why capital velocity (how fast USDC recycles through trades) matters more than per-trade profit at small account sizes.</p>
+
+  <h2>The Enhanced Kelly for <em>Execution Uncertainty</em></h2>
+
+  <p>Pythia's bot uses an enhanced version that accounts for execution probability — the chance that limit orders actually get filled at the target price:</p>
+
+  <pre># Enhanced Kelly with execution uncertainty
+def kelly_enhanced(profit, cost, p_execution=0.85):
+    edge = profit / cost
+    base_kelly = (edge / (1 + edge)) * 0.25
+    # Scale down by sqrt of execution probability
+    return base_kelly * (p_execution ** 0.5)
+
+# At 85% estimated fill probability:
+# kelly_enhanced(0.02, 0.98) = 0.50% × √0.85 = 0.46%</pre>
+
+  <p>The square root scaling is conservative — it prevents over-betting in illiquid markets where fills are uncertain. In liquid politics markets with narrow spreads, execution probability approaches 95%+ and the adjustment is minimal.</p>
+
+  <h2>Scaling <em>Capital</em></h2>
+
+  <p>Position sizes scale with capital automatically via Kelly. The more capital you have, the larger each trade — but the percentage stays constant. This is the key insight: you don't change the <em>strategy</em> as you scale. You just run the same formula on a larger number.</p>
+
+  <table>
+    <tr><th>Capital Level</th><th>Trades/Day (automated)</th><th>Expected Daily Profit</th><th>Monthly (est.)</th></tr>
+    <tr><td>$300</td><td>5-10 (manual)</td><td>$0.50–$2.00</td><td>$15–$60</td></tr>
+    <tr><td>$3,000</td><td>50-100 (semi-auto)</td><td>$5–$20</td><td>$150–$600</td></tr>
+    <tr><td>$30,000</td><td>500+ (fully automated)</td><td>$50–$200</td><td>$1,500–$6,000</td></tr>
+    <tr><td>$300,000</td><td>5,000+ (HFT-level)</td><td>$500–$2,000</td><td>$15,000–$60,000</td></tr>
+  </table>
+
+  <p>These are conservative estimates based on historical opportunity frequency. The top arbers are running 333 trades per minute — the scale is achievable with a properly built bot and meaningful capital.</p>
+
+  <div class="cta">
+    <h3>The Full Playbook — Including All The Code</h3>
+    <p>Scanner, executor, Kelly sizing implementation, and the complete $300 → $300K roadmap. 8 chapters. $9.</p>
+    <a href="https://buy.stripe.com/4gMeVc7XNfoi92J7Qn6Na00">GET THE PLAYBOOK →</a>
+  </div>
+</article>
+<footer>© 2026 PYTHIA · pythialpha.trade · <a href="/blog/what-is-polymarket-merge-arb.html" style="color:var(--muted)">What is merge arb?</a> · <a href="/calculator.html" style="color:var(--muted)">Free calculator</a></footer>
+</body>
+</html>

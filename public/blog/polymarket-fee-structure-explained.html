@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Polymarket Fee Structure Explained (2026) — Makers, Takers, and Zero-Fee Markets</title>
+<meta name="description" content="Complete breakdown of Polymarket's fee structure. Which markets have zero fees, how taker fees are calculated, how to earn maker rebates, and how fees affect arbitrage profitability."/>
+<meta name="keywords" content="polymarket fees, polymarket fee structure, polymarket maker fees, polymarket taker fees, polymarket trading costs"/>
+<link rel="canonical" href="https://pythialpha.trade/blog/polymarket-fee-structure-explained"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--bg:#050505;--surface:#0d0d0d;--border:#1a1a1a;--text:#e8e8e8;--muted:#888;--green:#4ade80;--red:#f87171}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;line-height:1.7}
+nav{border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;letter-spacing:2px;color:var(--gold);font-style:italic;text-decoration:none}
+.logo span{font-size:10px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal}
+article{max-width:720px;margin:0 auto;padding:60px 24px 100px}
+.eyebrow{font-size:11px;letter-spacing:3px;color:var(--gold);font-family:monospace;margin-bottom:16px}
+h1{font-size:clamp(28px,4vw,44px);font-weight:400;line-height:1.15;margin-bottom:20px}
+h1 em{color:var(--gold);font-style:normal}
+.meta{font-size:12px;color:var(--muted);font-family:monospace;margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+h2{font-size:22px;font-weight:400;margin:44px 0 14px}
+h2 em{color:var(--gold);font-style:normal}
+p{margin-bottom:18px;color:#ccc;font-size:16px}
+code{background:#111;border:1px solid var(--border);padding:2px 6px;font-size:13px;color:var(--gold);font-family:monospace}
+pre{background:#0a0a0a;border:1px solid var(--border);border-left:3px solid var(--gold);padding:20px;margin:24px 0;overflow-x:auto;font-family:monospace;font-size:13px;color:#ccc;line-height:1.6}
+.callout{background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);padding:18px 22px;margin:28px 0}
+.callout strong{color:var(--gold);display:block;margin-bottom:6px;font-family:monospace;font-size:11px;letter-spacing:2px}
+.callout p{margin:0;font-size:15px}
+.green{color:var(--green)}
+.red{color:var(--red)}
+table{width:100%;border-collapse:collapse;margin:24px 0;font-size:14px}
+th{background:#111;color:var(--gold);font-family:monospace;font-size:10px;letter-spacing:2px;padding:10px 14px;text-align:left;border:1px solid var(--border)}
+td{padding:10px 14px;border:1px solid var(--border);color:#ccc;font-family:sans-serif}
+tr:nth-child(even) td{background:#080808}
+.cta{background:var(--surface);border:1px solid var(--border);padding:28px;margin:56px 0 0;text-align:center}
+.cta h3{font-size:20px;font-weight:400;margin-bottom:8px}
+.cta p{color:var(--muted);font-size:13px;margin-bottom:20px;font-family:sans-serif}
+.cta a{display:inline-block;background:var(--gold);color:#000;padding:12px 28px;font-family:monospace;font-size:12px;letter-spacing:2px;font-weight:bold;text-decoration:none}
+footer{border-top:1px solid var(--border);padding:20px 32px;font-size:11px;color:var(--muted);font-family:monospace;text-align:center}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">PYTHIA<span>pythialpha.trade</span></a>
+  <a href="/#buy" style="font-size:12px;color:var(--gold);font-family:monospace;text-decoration:none">GET THE PLAYBOOK →</a>
+</nav>
+<article>
+  <div class="eyebrow">🔮 PYTHIA ALPHA — STRATEGY BREAKDOWN</div>
+  <h1>Polymarket <em>Fee Structure</em> Explained (2026)</h1>
+  <div class="meta">By Pythia · March 2026 · 6 min read · <a href="/calculator.html" style="color:var(--gold)">Free arb calculator →</a></div>
+
+  <p>Polymarket's fee structure is one of the most misunderstood things in prediction market trading. Most retail traders don't realize that a large category of markets has <strong style="color:var(--green)">zero fees</strong> — and the quants extracting millions know exactly which markets to target because of it.</p>
+
+  <p>Here's the complete breakdown.</p>
+
+  <h2>The Two <em>Fee Regimes</em></h2>
+
+  <p>Polymarket applies fees differently based on market category:</p>
+
+  <table>
+    <tr><th>Market Category</th><th>Taker Fee</th><th>Maker Fee</th></tr>
+    <tr><td>Politics</td><td class="green">0%</td><td class="green">0% (+ rebate)</td></tr>
+    <tr><td>Culture / Entertainment</td><td class="green">0%</td><td class="green">0% (+ rebate)</td></tr>
+    <tr><td>Science / Tech</td><td class="green">0%</td><td class="green">0% (+ rebate)</td></tr>
+    <tr><td>Sports</td><td class="red">Variable (up to ~1.56%)</td><td class="green">0% (+ rebate)</td></tr>
+    <tr><td>Crypto</td><td class="red">Variable (up to ~1.56%)</td><td class="green">0% (+ rebate)</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>THE MOST IMPORTANT FACT</strong>
+    <p>Politics, culture, and science markets have <span class="green">zero taker fees</span>. Any spread where YES + NO &lt; $1.00 is pure profit, no deduction required. These are the markets to target first, always.</p>
+  </div>
+
+  <h2>The Taker Fee <em>Formula</em></h2>
+
+  <p>For crypto and sports markets, the taker fee is calculated per-share using:</p>
+
+  <pre>fee = C × price × 0.25 × (price × (1 - price))²
+
+Where:
+  C ≈ 0.02 (fee coefficient)
+  price = the token price you're buying at (0 to 1)
+  
+Maximum fee ≈ 1.56% at price = 0.50 (the midpoint)
+Fee approaches 0 at extremes (price near 0 or near 1)</pre>
+
+  <p>The curve is intentional: fees are highest at 50¢ (maximum uncertainty) and lowest at extremes (where one side is near-certain). This means mean reversion strategies — buying at 5-10¢ — pay almost no fees even in crypto/sports markets.</p>
+
+  <h2>Fee vs Price: <em>The Curve</em></h2>
+
+  <table>
+    <tr><th>Token Price</th><th>Taker Fee (Crypto/Sports)</th><th>Net cost for $0.02 gap</th></tr>
+    <tr><td>$0.05 (5¢)</td><td>~0.001%</td><td class="green">Profitable</td></tr>
+    <tr><td>$0.10 (10¢)</td><td>~0.008%</td><td class="green">Profitable</td></tr>
+    <tr><td>$0.25 (25¢)</td><td>~0.18%</td><td class="green">Profitable</td></tr>
+    <tr><td>$0.50 (50¢)</td><td>~1.56%</td><td class="red">NOT profitable (gap eaten by fees)</td></tr>
+    <tr><td>$0.75 (75¢)</td><td>~0.18%</td><td class="green">Profitable</td></tr>
+    <tr><td>$0.90 (90¢)</td><td>~0.008%</td><td class="green">Profitable</td></tr>
+  </table>
+
+  <p>The lesson: for crypto/sports markets, arb opportunities at price extremes (under 15¢ or over 85¢) are far more profitable than mid-range gaps. The fee structure actually makes extreme-price arbs <em>more</em> attractive than they appear at first glance.</p>
+
+  <h2>Maker Orders: <em>Zero Fees + Rebates</em></h2>
+
+  <p>Polymarket's CLOB distinguishes between makers (limit orders sitting in the book) and takers (market orders that fill against existing liquidity).</p>
+
+  <p><strong>Makers pay zero fees.</strong> Full stop.</p>
+
+  <p>Beyond zero fees, makers earn a portion of the daily USDC fee pool — approximately 20-25% of all fees collected that day, distributed pro-rata to makers based on their volume. This means that for high-volume market makers, the fee structure is actually <em>positive</em> — you earn money just for providing liquidity.</p>
+
+  <div class="callout">
+    <strong>MAKER ARB STRATEGY</strong>
+    <p>Post limit orders (not market orders) on both YES and NO sides. Zero fee exposure on the entry. Earn daily rebates. The rebate income compounds — the more volume you post, the more you earn, regardless of whether the orders fill at a spread.</p>
+  </div>
+
+  <h2>Fee-Adjusted Thresholds for <em>Merge Arb</em></h2>
+
+  <p>The break-even threshold for merge arb after fees:</p>
+
+  <table>
+    <tr><th>Market Type</th><th>Order Type</th><th>Min Profitable Gap</th></tr>
+    <tr><td>Politics / Culture / Science</td><td>Taker</td><td class="green">Any gap where YES + NO &lt; $1.00</td></tr>
+    <tr><td>Politics / Culture / Science</td><td>Maker</td><td class="green">Any gap + earn rebates</td></tr>
+    <tr><td>Crypto / Sports (near 50¢)</td><td>Taker</td><td>YES + NO &lt; ~$0.969</td></tr>
+    <tr><td>Crypto / Sports (near extremes)</td><td>Taker</td><td class="green">YES + NO &lt; ~$0.998</td></tr>
+    <tr><td>Any market</td><td>Maker</td><td class="green">Any gap + earn rebates</td></tr>
+  </table>
+
+  <h2>Why This Creates <em>Persistent Opportunity</em></h2>
+
+  <p>Most retail traders don't model fees correctly. They see YES at $0.47 and NO at $0.52 and think the spread is $0.01. They don't check whether it's a zero-fee market. They don't use maker orders. They don't account for the rebate.</p>
+
+  <p>This information asymmetry is why the gap exists and why it's extractable. The quants know the fee structure cold. Retail doesn't.</p>
+
+  <p>The $39.6M extracted from Polymarket in 12 months wasn't from superior prediction. It was from superior fee modeling, faster scanning, and better execution.</p>
+
+  <div class="cta">
+    <h3>The Full Playbook</h3>
+    <p>Fee math, scanner code, Kelly sizing, and the complete execution guide. 8 chapters. $9.</p>
+    <a href="https://buy.stripe.com/4gMeVc7XNfoi92J7Qn6Na00">GET THE PLAYBOOK →</a>
+  </div>
+</article>
+<footer>© 2026 PYTHIA · pythialpha.trade · <a href="/blog/what-is-polymarket-merge-arb.html" style="color:var(--muted)">What is merge arb?</a> · <a href="/calculator.html" style="color:var(--muted)">Free calculator</a></footer>
+</body>
+</html>
