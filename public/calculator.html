@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Polymarket Merge Arb Calculator — Free Tool by Pythia</title>
+<meta name="description" content="Free Polymarket merge arbitrage calculator. Enter YES and NO token prices to instantly see if a trade is profitable, what your edge is, and how much to size the position."/>
+<meta name="keywords" content="polymarket calculator, merge arb calculator, polymarket arbitrage tool, prediction market calculator"/>
+<link rel="canonical" href="https://pythialpha.trade/calculator"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--gold-dim:#8B6914;--bg:#050505;--surface:#0d0d0d;--border:#1a1a1a;--text:#e8e8e8;--muted:#666;--green:#4ade80;--red:#f87171}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;min-height:100vh}
+nav{border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;letter-spacing:2px;color:var(--gold);font-style:italic;text-decoration:none}
+.logo span{font-size:10px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal}
+
+.hero{max-width:640px;margin:0 auto;padding:60px 24px 0}
+.eyebrow{font-size:11px;letter-spacing:3px;color:var(--gold);font-family:monospace;margin-bottom:14px}
+h1{font-size:clamp(28px,4vw,40px);font-weight:400;margin-bottom:12px}
+h1 em{color:var(--gold);font-style:normal}
+.subtitle{font-size:15px;color:var(--muted);font-family:sans-serif;margin-bottom:40px}
+
+/* CALCULATOR */
+.calc{max-width:640px;margin:0 auto;padding:0 24px}
+.card{background:var(--surface);border:1px solid var(--border);padding:28px;margin-bottom:16px}
+.card h2{font-size:13px;letter-spacing:2px;color:var(--muted);font-family:monospace;margin-bottom:20px;font-weight:normal}
+
+.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.field label{display:block;font-size:11px;letter-spacing:2px;color:var(--muted);font-family:monospace;margin-bottom:6px}
+.field input{width:100%;background:#080808;border:1px solid var(--border);color:var(--text);padding:12px 14px;font-family:monospace;font-size:20px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--gold-dim)}
+.field input.has-val{border-color:#333}
+
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.slider-row label{font-size:11px;letter-spacing:2px;color:var(--muted);font-family:monospace;white-space:nowrap}
+input[type=range]{flex:1;accent-color:var(--gold);height:2px}
+.slider-val{font-family:monospace;font-size:14px;color:var(--text);min-width:60px;text-align:right}
+
+/* RESULTS */
+.result-card{background:var(--surface);border:1px solid var(--border);padding:28px;margin-bottom:16px;position:relative;overflow:hidden}
+.result-card.profitable{border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.03)}
+.result-card.unprofitable{border-color:rgba(248,113,113,.2);background:rgba(248,113,113,.02)}
+.result-card.neutral{border-color:var(--border)}
+
+.verdict{font-size:13px;letter-spacing:2px;font-family:monospace;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.verdict.go{color:var(--green)}
+.verdict.no{color:var(--red)}
+.verdict.wait{color:var(--gold)}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.metric{border:1px solid var(--border);padding:14px}
+.metric .val{font-size:22px;font-family:monospace;margin-bottom:4px}
+.metric .val.pos{color:var(--green)}
+.metric .val.neg{color:var(--red)}
+.metric .val.neu{color:var(--gold)}
+.metric .lbl{font-size:10px;color:var(--muted);letter-spacing:1px;font-family:monospace}
+
+.breakdown{margin-top:20px;font-family:monospace;font-size:13px;color:var(--muted);line-height:2.2;border-top:1px solid var(--border);padding-top:16px}
+.breakdown span{color:var(--text)}
+
+/* MARKET TYPE */
+.type-toggle{display:flex;gap:8px;margin-bottom:20px}
+.type-btn{flex:1;padding:8px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s}
+.type-btn.active{background:rgba(201,168,76,.1);border-color:var(--gold-dim);color:var(--gold)}
+
+/* CTA */
+.cta-strip{background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.15);padding:24px 28px;margin-bottom:80px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.cta-strip p{font-size:14px;color:#aaa;font-family:sans-serif;flex:1}
+.cta-strip a{white-space:nowrap;background:var(--gold);color:#000;padding:10px 20px;font-family:monospace;font-size:12px;letter-spacing:2px;font-weight:bold;text-decoration:none}
+
+footer{border-top:1px solid var(--border);padding:20px 32px;font-size:11px;color:var(--muted);font-family:monospace;text-align:center}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">PYTHIA<span>pythialpha.trade</span></a>
+  <a href="/#buy" style="font-size:12px;color:var(--gold);font-family:monospace;text-decoration:none">GET THE PLAYBOOK →</a>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">🔮 FREE TOOL</div>
+  <h1>Polymarket <em>Arb Calculator</em></h1>
+  <p class="subtitle">Enter YES and NO prices to instantly see if a merge arb is profitable, your edge, and optimal position size.</p>
+</div>
+
+<div class="calc">
+  <!-- Market Type -->
+  <div class="card">
+    <h2>MARKET TYPE</h2>
+    <div class="type-toggle">
+      <button class="type-btn active" onclick="setType('zero',this)">⚡ POLITICS / CULTURE / SCIENCE<br/><span style="font-size:10px;opacity:.6">ZERO FEES — best for arb</span></button>
+      <button class="type-btn" onclick="setType('fee',this)">💸 CRYPTO / SPORTS<br/><span style="font-size:10px;opacity:.6">Variable fees apply</span></button>
+    </div>
+
+    <!-- Inputs -->
+    <h2>TOKEN PRICES</h2>
+    <div class="input-grid">
+      <div class="field">
+        <label>YES TOKEN PRICE ($)</label>
+        <input type="number" id="yesPrice" min="0" max="1" step="0.001" placeholder="0.47" oninput="calculate()"/>
+      </div>
+      <div class="field">
+        <label>NO TOKEN PRICE ($)</label>
+        <input type="number" id="noPrice" min="0" max="1" step="0.001" placeholder="0.51" oninput="calculate()"/>
+      </div>
+    </div>
+
+    <!-- Capital -->
+    <h2>YOUR CAPITAL</h2>
+    <div class="slider-row">
+      <label>CAPITAL ($)</label>
+      <input type="range" id="capital" min="50" max="10000" step="50" value="300" oninput="updateCapital();calculate()"/>
+      <span class="slider-val" id="capitalVal">$300</span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="result-card neutral" id="resultCard">
+    <div class="verdict wait" id="verdict">◈ ENTER PRICES TO ANALYZE</div>
+    <div class="metrics">
+      <div class="metric">
+        <div class="val neu" id="profitPerShare">—</div>
+        <div class="lbl">PROFIT / SHARE</div>
+      </div>
+      <div class="metric">
+        <div class="val neu" id="edgePct">—</div>
+        <div class="lbl">EDGE %</div>
+      </div>
+      <div class="metric">
+        <div class="val neu" id="positionSize">—</div>
+        <div class="lbl">POSITION SIZE</div>
+      </div>
+    </div>
+    <div class="breakdown" id="breakdown" style="display:none"></div>
+  </div>
+
+  <div class="cta-strip">
+    <p>The full playbook: 8 chapters, working scanner code, Kelly sizing deep dive, and the $300 → $300K roadmap.</p>
+    <a href="https://buy.stripe.com/4gMeVc7XNfoi92J7Qn6Na00">GET THE PLAYBOOK — $9 →</a>
+  </div>
+</div>
+
+<footer>© 2026 PYTHIA · pythialpha.trade · @PythiaAlpha · <a href="/blog/what-is-polymarket-merge-arb.html" style="color:var(--muted)">What is merge arb?</a></footer>
+
+<script>
+let marketType = 'zero'; // 'zero' or 'fee'
+
+function setType(type, btn) {
+  marketType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calculate();
+}
+
+function updateCapital() {
+  const val = document.getElementById('capital').value;
+  document.getElementById('capitalVal').textContent = '$' + Number(val).toLocaleString();
+}
+
+function calcFee(price) {
+  // Polymarket fee formula for crypto/sports
+  const C = 0.02;
+  return C * price * 0.25 * Math.pow(price * (1 - price), 2);
+}
+
+function calculate() {
+  const yes = parseFloat(document.getElementById('yesPrice').value);
+  const no = parseFloat(document.getElementById('noPrice').value);
+  const capital = parseFloat(document.getElementById('capital').value);
+  const card = document.getElementById('resultCard');
+  const verdict = document.getElementById('verdict');
+
+  if (isNaN(yes) || isNaN(no) || yes <= 0 || no <= 0) {
+    card.className = 'result-card neutral';
+    verdict.className = 'verdict wait';
+    verdict.textContent = '◈ ENTER PRICES TO ANALYZE';
+    document.getElementById('profitPerShare').textContent = '—';
+    document.getElementById('edgePct').textContent = '—';
+    document.getElementById('positionSize').textContent = '—';
+    document.getElementById('breakdown').style.display = 'none';
+    return;
+  }
+
+  // Fee calculation
+  let yesFee = 0, noFee = 0;
+  if (marketType === 'fee') {
+    yesFee = calcFee(yes);
+    noFee = calcFee(no);
+  }
+
+  const totalCost = yes + no + yesFee + noFee;
+  const profit = 1.0 - totalCost;
+  const edge = profit / totalCost;
+
+  // Quarter-Kelly sizing
+  const kellyFraction = Math.max(0, (edge / (1 + edge)) * 0.25);
+  const maxPos = capital * 0.30; // 30% max
+  const rawPos = capital * kellyFraction;
+  const position = Math.min(rawPos, maxPos);
+  const shares = position / totalCost;
+  const totalProfit = shares * profit;
+
+  // Update UI
+  const profitable = profit > 0.001;
+  const marginal = profit >= 0 && profit <= 0.001;
+
+  card.className = 'result-card ' + (profitable ? 'profitable' : marginal ? 'neutral' : 'unprofitable');
+  verdict.className = 'verdict ' + (profitable ? 'go' : marginal ? 'wait' : 'no');
+  verdict.textContent = profitable ? '✓ TRADE IS PROFITABLE' : marginal ? '◈ MARGINAL — BORDERLINE' : '✗ NOT PROFITABLE';
+
+  const pps = document.getElementById('profitPerShare');
+  pps.textContent = (profit >= 0 ? '+' : '') + '$' + profit.toFixed(4);
+  pps.className = 'val ' + (profit > 0.001 ? 'pos' : profit < 0 ? 'neg' : 'neu');
+
+  const ep = document.getElementById('edgePct');
+  ep.textContent = (edge >= 0 ? '+' : '') + (edge * 100).toFixed(3) + '%';
+  ep.className = 'val ' + (edge > 0.001 ? 'pos' : edge < 0 ? 'neg' : 'neu');
+
+  const ps = document.getElementById('positionSize');
+  ps.textContent = '$' + position.toFixed(2);
+  ps.className = 'val ' + (profitable ? 'pos' : 'neu');
+
+  // Breakdown
+  const bd = document.getElementById('breakdown');
+  bd.style.display = 'block';
+  bd.innerHTML = `
+    YES ask: <span>$${yes.toFixed(4)}</span>${marketType==='fee' ? ` + fee <span>$${yesFee.toFixed(4)}</span>` : ''}<br/>
+    NO ask: <span>$${no.toFixed(4)}</span>${marketType==='fee' ? ` + fee <span>$${noFee.toFixed(4)}</span>` : ''}<br/>
+    Total cost per share: <span>$${totalCost.toFixed(4)}</span><br/>
+    Profit per share: <span style="color:${profit>0?'#4ade80':'#f87171'}">${profit>=0?'+':''}$${profit.toFixed(4)}</span><br/>
+    Quarter-Kelly fraction: <span>${(kellyFraction*100).toFixed(3)}%</span><br/>
+    Recommended position: <span>$${position.toFixed(2)}</span> → <span>${shares.toFixed(1)} shares</span><br/>
+    Expected profit: <span style="color:${totalProfit>0?'#4ade80':'#f87171'}">${totalProfit>=0?'+':''}$${totalProfit.toFixed(2)}</span>
+  `;
+}
+</script>
+</body>
+</html>
