@@ -1,0 +1,15 @@
+pyproject.toml
+requirements.txt
+main.py
+scanner/
+executor/
+capital/
+chain/
+strategy/
+utils/
+db/
+tests/
+start.sh
+start_dashboard.sh
+drafts/
+products/
