@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Live Polymarket Arb Scanner — Free Tool by Pythia</title>
+<meta name="description" content="Free live Polymarket arbitrage scanner. See real-time YES + NO price gaps across 500+ markets. Updated every 30 seconds. Find profitable merge arb opportunities now."/>
+<meta name="keywords" content="polymarket arb scanner, polymarket arbitrage scanner, live polymarket opportunities, polymarket merge arb live, free polymarket tool"/>
+<link rel="canonical" href="https://pythialpha.trade/scanner"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--gold-dim:#8B6914;--bg:#050505;--surface:#0d0d0d;--border:#1a1a1a;--text:#e8e8e8;--muted:#666;--green:#4ade80;--red:#f87171;--yellow:#fbbf24}
+body{background:var(--bg);color:var(--text);font-family:monospace;min-height:100vh}
+nav{border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(5,5,5,.97);z-index:100;backdrop-filter:blur(8px)}
+.logo{font-size:18px;letter-spacing:2px;color:var(--gold);font-style:italic;text-decoration:none;font-family:'Georgia',serif}
+.logo span{font-size:9px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal}
+nav a{font-size:11px;color:var(--muted);letter-spacing:1px;text-decoration:none}
+nav a:hover{color:var(--gold)}
+
+.header{padding:28px 24px 20px;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header-left h1{font-size:20px;color:var(--text);font-weight:normal;letter-spacing:1px}
+.header-left h1 em{color:var(--green);font-style:normal}
+.status-row{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--muted);margin-top:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* CONTROLS */
+.controls{max-width:1100px;margin:0 auto;padding:0 24px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctrl-btn{padding:7px 14px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-family:monospace;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .15s}
+.ctrl-btn:hover,.ctrl-btn.active{border-color:var(--gold-dim);color:var(--gold);background:rgba(201,168,76,.06)}
+.scan-btn{padding:8px 20px;background:var(--gold);border:none;color:#000;font-family:monospace;font-size:11px;letter-spacing:2px;font-weight:bold;cursor:pointer;margin-left:auto}
+.scan-btn:hover{opacity:.88}
+.scan-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* GATE */
+.gate{max-width:560px;margin:20px auto;padding:0 24px}
+.gate-card{background:var(--surface);border:1px solid rgba(201,168,76,.25);padding:32px;text-align:center}
+.gate-card h2{font-size:20px;font-weight:normal;font-family:'Georgia',serif;margin-bottom:10px;color:var(--text)}
+.gate-card h2 em{color:var(--gold);font-style:normal}
+.gate-card p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px;font-family:sans-serif}
+.gate-form{display:flex;gap:8px;max-width:400px;margin:0 auto}
+.gate-form input{flex:1;background:#080808;border:1px solid var(--border);color:var(--text);padding:11px 14px;font-family:monospace;font-size:13px;outline:none}
+.gate-form input:focus{border-color:var(--gold-dim)}
+.gate-form button{padding:11px 18px;background:var(--gold);border:none;color:#000;font-family:monospace;font-size:11px;letter-spacing:2px;font-weight:bold;cursor:pointer;white-space:nowrap}
+.gate-skip{font-size:11px;color:#333;margin-top:12px;cursor:pointer}
+.gate-skip:hover{color:var(--muted)}
+
+/* TABLE */
+.table-wrap{max-width:1100px;margin:0 auto;padding:0 24px 80px;overflow-x:auto;display:none}
+.table-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:11px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#080808;color:var(--muted);font-size:10px;letter-spacing:1.5px;padding:8px 12px;text-align:left;border:1px solid var(--border);cursor:pointer;white-space:nowrap}
+th:hover{color:var(--gold)}
+td{padding:9px 12px;border:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:rgba(201,168,76,.03)}
+.market-name{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.profit-cell{font-weight:bold}
+.profit-cell.high{color:var(--green)}
+.profit-cell.med{color:var(--yellow)}
+.profit-cell.low{color:var(--muted)}
+.tag{display:inline-block;font-size:9px;letter-spacing:1px;padding:2px 6px;border:1px solid;margin-left:4px}
+.tag.zero{border-color:rgba(74,222,128,.3);color:var(--green)}
+.tag.fee{border-color:rgba(251,191,36,.3);color:var(--yellow)}
+.action-btn{padding:4px 10px;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);font-family:monospace;font-size:10px;letter-spacing:1px;cursor:pointer;white-space:nowrap}
+.action-btn:hover{background:rgba(201,168,76,.08)}
+
+/* LOADING */
+.loading{max-width:1100px;margin:40px auto;padding:0 24px;text-align:center;color:var(--muted);font-size:13px;display:none}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY */
+.empty{max-width:1100px;margin:60px auto;padding:0 24px;text-align:center;color:var(--muted);display:none}
+
+/* CALC MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);padding:28px;max-width:460px;width:90%;position:relative}
+.modal h3{font-size:16px;font-weight:normal;font-family:'Georgia',serif;margin-bottom:20px;color:var(--gold)}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;font-family:monospace}
+.modal-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.modal-row:last-child{border-bottom:none}
+.modal-row .label{color:var(--muted)}
+.modal-row .val{color:var(--text)}
+.modal-row .val.pos{color:var(--green)}
+.modal-cta{margin-top:20px;display:block;width:100%;padding:12px;background:var(--gold);color:#000;font-family:monospace;font-size:12px;letter-spacing:2px;font-weight:bold;border:none;cursor:pointer;text-align:center;text-decoration:none}
+
+footer{border-top:1px solid var(--border);padding:18px 24px;font-size:10px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">PYTHIA<span>pythialpha.trade</span></a>
+  <div style="display:flex;gap:20px">
+    <a href="/calculator.html">CALCULATOR</a>
+    <a href="/blog/">RESEARCH</a>
+    <a href="/#buy" style="color:var(--gold)">$9 PLAYBOOK →</a>
+  </div>
+</nav>
+
+<div class="header">
+  <div class="header-left">
+    <h1>LIVE ARB SCANNER <em>●</em></h1>
+    <div class="status-row">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Loading...</span>
+      <span>·</span>
+      <span id="oppCount">—</span> opportunities found
+      <span>·</span>
+      Auto-refresh: <span id="refreshCountdown">30s</span>
+    </div>
+  </div>
+  <button class="scan-btn" id="scanBtn" onclick="runScan()">⟳ SCAN NOW</button>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn active" onclick="setFilter('all',this)">ALL MARKETS</button>
+  <button class="ctrl-btn" onclick="setFilter('zero',this)">ZERO-FEE ONLY</button>
+  <button class="ctrl-btn" onclick="setFilter('high',this)">> 1% EDGE</button>
+  <button class="ctrl-btn" onclick="setFilter('mega',this)">> 2% EDGE</button>
+</div>
+
+<!-- GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <h2>See <em>live opportunities</em> now</h2>
+    <p>Enter your email to unlock the full live scanner. We'll also send you an alert when Pythia's scanner finds a gap > 0.5% on a major market.</p>
+    <form class="gate-form" onsubmit="unlockScanner(event)">
+      <input type="email" id="gateEmail" placeholder="you@example.com" required/>
+      <button type="submit">UNLOCK →</button>
+    </form>
+    <div class="gate-skip" onclick="skipGate()">Skip for now →</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading" id="loading">
+  <span class="spinner"></span> Scanning 500+ Polymarket conditions...
+</div>
+
+<!-- EMPTY -->
+<div class="empty" id="empty">
+  No profitable opportunities found above threshold right now.<br/>
+  <span style="font-size:11px;margin-top:8px;display:block">This is normal — gaps open and close in seconds. Auto-refreshing in <span id="emptyCountdown">30</span>s.</span>
+</div>
+
+<!-- TABLE -->
+<div class="table-wrap" id="tableWrap">
+  <div class="table-meta">
+    <span id="tableMeta">—</span>
+    <span style="color:var(--muted);font-size:10px">Click any row for full analysis</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('question')">MARKET ↕</th>
+        <th onclick="sortBy('profit')">EDGE ↕</th>
+        <th onclick="sortBy('yes')">YES ASK ↕</th>
+        <th onclick="sortBy('no')">NO ASK ↕</th>
+        <th onclick="sortBy('volume')">VOLUME ↕</th>
+        <th>TYPE</th>
+        <th>ACTION</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 id="modalTitle">Trade Analysis</h3>
+    <div id="modalBody"></div>
+    <a href="https://buy.stripe.com/4gMeVc7XNfoi92J7Qn6Na00" class="modal-cta">GET THE FULL EXECUTION GUIDE — $9 →</a>
+  </div>
+</div>
+
+<footer>© 2026 PYTHIA · pythialpha.trade · Data from Polymarket Gamma API · Refreshes every 30 seconds · Not financial advice</footer>
+
+<script>
+const STRIPE_LINK = 'https://buy.stripe.com/4gMeVc7XNfoi92J7Qn6Na00';
+const CORS_PROXY = 'https://corsproxy.io/?';
+const GAMMA_URL = 'https://gamma-api.polymarket.com/markets?active=true&limit=500&order=volume&ascending=false';
+
+let allOpps = [];
+let currentFilter = 'all';
+let sortCol = 'profit';
+let sortDir = -1;
+let refreshTimer = null;
+let countdown = 30;
+let unlocked = localStorage.getItem('pythia_unlocked') === '1';
+
+// ZERO-FEE CATEGORY KEYWORDS (non-crypto, non-sports)
+const FEE_MARKETS = /crypto|bitcoin|btc|eth|ethereum|solana|sol|nfl|nba|mlb|nhl|soccer|football|basketball|tennis|golf|ufc|mma|sport/i;
+
+function isFeeMarket(q){ return FEE_MARKETS.test(q); }
+
+function calcFee(price){
+  return 0.02 * price * 0.25 * Math.pow(price * (1 - price), 2);
+}
+
+function calcEdge(yes, no, question){
+  const fee = isFeeMarket(question) ? (calcFee(yes) + calcFee(1 - no)) : 0;
+  const cost = yes + no + fee;
+  const profit = 1.0 - cost;
+  return { profit, cost, fee, isZeroFee: !isFeeMarket(question) };
+}
+
+function kellySize(profit, cost, capital=300){
+  const edge = profit / cost;
+  const f = Math.max(0, (edge / (1 + edge)) * 0.25);
+  const pos = Math.min(capital * f, capital * 0.3);
+  return { f, pos, shares: pos / cost, expectedProfit: pos / cost * profit };
+}
+
+async function runScan(){
+  if(!unlocked){ document.getElementById('gate').scrollIntoView({behavior:'smooth'}); return; }
+  clearInterval(refreshTimer);
+  countdown = 30;
+  showLoading();
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = '⟳ SCANNING...';
+
+  try {
+    const url = CORS_PROXY + encodeURIComponent(GAMMA_URL);
+    const res = await fetch(url, {signal: AbortSignal.timeout(12000)});
+    const markets = await res.json();
+    processMarkets(markets);
+  } catch(e) {
+    // Try without proxy
+    try {
+      const res = await fetch(GAMMA_URL, {signal: AbortSignal.timeout(10000)});
+      const markets = await res.json();
+      processMarkets(markets);
+    } catch(e2){
+      setStatus('error', 'API unavailable — retrying in 30s');
+      showEmpty();
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '⟳ SCAN NOW';
+  startRefreshTimer();
+}
+
+function processMarkets(markets){
+  allOpps = [];
+  for(const m of markets){
+    if(!m.active) continue;
+    const yes = parseFloat(m.bestAsk);
+    const no = parseFloat(m.bestAsk2 || (1 - parseFloat(m.bestBid)));
+    if(isNaN(yes) || isNaN(no) || yes <= 0 || no <= 0 || yes >= 1 || no >= 1) continue;
+    const { profit, cost, fee, isZeroFee } = calcEdge(yes, no, m.question || '');
+    if(profit < 0.001) continue;
+    allOpps.push({
+      question: m.question || 'Unknown market',
+      yes, no, profit, cost, fee, isZeroFee,
+      volume: parseFloat(m.volume || 0),
+      conditionId: m.conditionId || '',
+      slug: m.slug || ''
+    });
+  }
+  allOpps.sort((a,b) => b.profit - a.profit);
+  setStatus('live', `Last scan: ${new Date().toLocaleTimeString()}`);
+  document.getElementById('oppCount').textContent = allOpps.length;
+  renderTable();
+}
+
+function getFiltered(){
+  return allOpps.filter(o => {
+    if(currentFilter === 'zero') return o.isZeroFee;
+    if(currentFilter === 'high') return o.profit >= 0.01;
+    if(currentFilter === 'mega') return o.profit >= 0.02;
+    return true;
+  });
+}
+
+function renderTable(){
+  const opps = getFiltered();
+  const sorted = [...opps].sort((a,b) => {
+    const va = sortCol === 'question' ? a.question : sortCol === 'yes' ? a.yes : sortCol === 'no' ? a.no : sortCol === 'volume' ? a.volume : a.profit;
+    const vb = sortCol === 'question' ? b.question : sortCol === 'yes' ? b.yes : sortCol === 'no' ? b.no : sortCol === 'volume' ? b.volume : b.profit;
+    if(sortCol === 'question') return sortDir * va.localeCompare(vb);
+    return sortDir * (vb - va);
+  });
+
+  if(sorted.length === 0){ showEmpty(); return; }
+
+  hideEmpty(); hideLoading();
+  document.getElementById('tableWrap').style.display = 'block';
+  document.getElementById('tableMeta').textContent = `${sorted.length} opportunities · sorted by edge`;
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = sorted.map((o,i) => {
+    const pClass = o.profit >= 0.02 ? 'high' : o.profit >= 0.01 ? 'med' : 'low';
+    const typeTag = o.isZeroFee
+      ? '<span class="tag zero">ZERO FEE</span>'
+      : '<span class="tag fee">FEE MARKET</span>';
+    return `<tr onclick="showModal(${i})" style="cursor:pointer">
+      <td><div class="market-name">${escHtml(o.question)}${typeTag}</div></td>
+      <td class="profit-cell ${pClass}">+${(o.profit*100).toFixed(3)}%<br/><span style="color:var(--muted);font-size:10px">$${o.profit.toFixed(4)}/share</span></td>
+      <td>$${o.yes.toFixed(4)}</td>
+      <td>$${o.no.toFixed(4)}</td>
+      <td>${o.volume > 1e6 ? '$'+( o.volume/1e6).toFixed(1)+'M' : o.volume > 1e3 ? '$'+(o.volume/1e3).toFixed(0)+'K' : '$'+o.volume.toFixed(0)}</td>
+      <td>${o.isZeroFee ? '<span style="color:var(--green);font-size:10px">ZERO</span>' : '<span style="color:var(--yellow);font-size:10px">FEE</span>'}</td>
+      <td><button class="action-btn" onclick="event.stopPropagation();showModal(${i})">ANALYZE →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function showModal(idx){
+  const filtered = getFiltered();
+  const sorted = [...filtered].sort((a,b) => b.profit - a.profit);
+  const o = sorted[idx];
+  if(!o) return;
+  const k = kellySize(o.profit, o.cost);
+  document.getElementById('modalTitle').textContent = o.question.slice(0,60) + (o.question.length > 60 ? '...' : '');
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-row"><span class="label">YES ask</span><span class="val">$${o.yes.toFixed(4)}</span></div>
+    <div class="modal-row"><span class="label">NO ask</span><span class="val">$${o.no.toFixed(4)}</span></div>
+    <div class="modal-row"><span class="label">Fee type</span><span class="val ${o.isZeroFee?'pos':''}">${o.isZeroFee?'ZERO FEE ✓':'Variable fee'}</span></div>
+    <div class="modal-row"><span class="label">Fees per share</span><span class="val">$${o.fee.toFixed(5)}</span></div>
+    <div class="modal-row"><span class="label">Total cost/share</span><span class="val">$${o.cost.toFixed(4)}</span></div>
+    <div class="modal-row"><span class="label">Profit/share</span><span class="val pos">+$${o.profit.toFixed(4)}</span></div>
+    <div class="modal-row"><span class="label">Edge %</span><span class="val pos">+${(o.profit/o.cost*100).toFixed(3)}%</span></div>
+    <div class="modal-row"><span class="label">Quarter-Kelly position ($300)</span><span class="val">$${k.pos.toFixed(2)} → ${k.shares.toFixed(1)} shares</span></div>
+    <div class="modal-row"><span class="label">Expected profit</span><span class="val pos">+$${k.expectedProfit.toFixed(3)}</span></div>
+    <div class="modal-row"><span class="label">Volume</span><span class="val">$${(o.volume/1000).toFixed(0)}K</span></div>
+    <div class="modal-row"><span class="label">Condition ID</span><span class="val" style="font-size:10px;word-break:break-all">${o.conditionId.slice(0,20)}...</span></div>
+  `;
+  document.getElementById('modalBg').classList.add('show');
+}
+
+function closeModal(e){
+  if(!e || e.target === document.getElementById('modalBg'))
+    document.getElementById('modalBg').classList.remove('show');
+}
+
+function sortBy(col){
+  if(sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = -1; }
+  renderTable();
+}
+
+function setFilter(f, btn){
+  currentFilter = f;
+  document.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function setStatus(state, text){
+  const dot = document.getElementById('statusDot');
+  dot.className = 'dot' + (state === 'live' ? ' live' : '');
+  document.getElementById('statusText').textContent = text;
+}
+
+function showLoading(){ document.getElementById('loading').style.display='block'; document.getElementById('tableWrap').style.display='none'; document.getElementById('empty').style.display='none'; }
+function hideLoading(){ document.getElementById('loading').style.display='none'; }
+function showEmpty(){ document.getElementById('empty').style.display='block'; document.getElementById('tableWrap').style.display='none'; hideLoading(); }
+function hideEmpty(){ document.getElementById('empty').style.display='none'; }
+
+function startRefreshTimer(){
+  countdown = 30;
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    countdown--;
+    document.getElementById('refreshCountdown').textContent = countdown + 's';
+    document.getElementById('emptyCountdown').textContent = countdown;
+    if(countdown <= 0){ runScan(); }
+  }, 1000);
+}
+
+function unlockScanner(e){
+  e.preventDefault();
+  const email = document.getElementById('gateEmail').value;
+  // Submit email via hidden form to formsubmit
+  fetch('https://formsubmit.co/ajax/pythia.corporation@gmail.com', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body: JSON.stringify({email, _subject:'Pythia Scanner — Unlock', _captcha:'false'})
+  }).catch(()=>{});
+  localStorage.setItem('pythia_unlocked','1');
+  unlocked = true;
+  document.getElementById('gate').style.display='none';
+  runScan();
+}
+
+function skipGate(){
+  localStorage.setItem('pythia_unlocked','1');
+  unlocked = true;
+  document.getElementById('gate').style.display='none';
+  runScan();
+}
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Init
+if(unlocked){
+  document.getElementById('gate').style.display='none';
+  runScan();
+} else {
+  setStatus('idle','Enter email to unlock');
+  document.getElementById('oppCount').textContent = '—';
+}
+</script>
+</body>
+</html>

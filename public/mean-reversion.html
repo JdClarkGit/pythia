@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pythia Mean Reversion Strategy — 1,372% Theoretical APY on Polymarket</title>
+<meta name="description" content="The Polymarket mean reversion strategy: buy YES tokens at 3-15¢, sell at 87-93¢. 6% of markets make this move. ~83 hour average hold. Historical 1,372% theoretical APY."/>
+<link rel="canonical" href="https://pythialpha.trade/mean-reversion"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--gold-dim:#8B6914;--bg:#050505;--surface:#0d0d0d;--border:#1a1a1a;--text:#e8e8e8;--muted:#666;--green:#4ade80;--purple:#a78bfa}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;min-height:100vh}
+nav{border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;letter-spacing:2px;color:var(--gold);font-style:italic;text-decoration:none}
+.logo span{font-size:10px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal}
+nav a{font-size:12px;color:var(--muted);letter-spacing:1px;font-family:monospace;text-decoration:none}
+nav a:hover{color:var(--gold)}
+.hero{max-width:760px;margin:0 auto;padding:72px 24px 48px}
+.badge{display:inline-block;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);color:var(--purple);font-size:11px;letter-spacing:3px;padding:5px 14px;margin-bottom:28px;font-family:monospace}
+h1{font-size:clamp(32px,5vw,54px);line-height:1.1;font-weight:400;margin-bottom:20px}
+h1 em{color:var(--gold);font-style:normal}
+.sub{font-size:17px;color:#aaa;line-height:1.6;margin-bottom:24px;font-family:sans-serif}
+.warning{background:rgba(167,139,250,.05);border:1px solid rgba(167,139,250,.2);padding:14px 20px;font-family:monospace;font-size:12px;color:var(--purple);margin-bottom:48px}
+.stats-row{display:flex;gap:28px;margin-bottom:48px;flex-wrap:wrap}
+.stat{border-left:2px solid var(--gold-dim);padding-left:14px}
+.stat .num{font-size:28px;color:var(--gold);font-family:monospace;font-weight:bold}
+.stat .lbl{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:3px;font-family:sans-serif}
+.section{max-width:760px;margin:0 auto;padding:0 24px 48px}
+h2{font-size:24px;font-weight:400;margin-bottom:20px}
+h2 em{color:var(--gold);font-style:normal}
+p{color:#ccc;font-size:16px;line-height:1.7;margin-bottom:18px;font-family:sans-serif}
+.callout{background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.2);padding:18px 22px;margin:24px 0;font-family:monospace;font-size:13px}
+.callout strong{color:var(--gold);display:block;margin-bottom:6px;font-size:11px;letter-spacing:2px}
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;font-family:sans-serif}
+th{background:#080808;color:var(--gold);font-family:monospace;font-size:10px;letter-spacing:2px;padding:10px 12px;text-align:left;border:1px solid var(--border)}
+td{padding:10px 12px;border:1px solid var(--border);color:#ccc}
+tr:nth-child(even) td{background:#080808}
+.cta-box{background:var(--surface);border:1px solid var(--gold-dim);padding:32px;text-align:center;max-width:760px;margin:0 auto 80px}
+.cta-box h3{font-size:22px;font-weight:400;margin-bottom:8px}
+.cta-box p{color:var(--muted);font-size:14px;margin-bottom:24px;font-family:sans-serif}
+.cta-box .price{font-size:48px;color:var(--gold);font-family:monospace;margin-bottom:4px}
+.cta-box .price span{font-size:16px;color:var(--muted)}
+.cta-box a{display:inline-block;background:var(--gold);color:#000;padding:14px 32px;font-family:monospace;font-size:13px;letter-spacing:2px;font-weight:bold;text-decoration:none;margin-top:16px}
+.form-row{display:flex;gap:8px;max-width:400px;margin:16px auto 0}
+.form-row input{flex:1;background:#080808;border:1px solid var(--border);color:var(--text);padding:11px 14px;font-family:monospace;font-size:13px;outline:none}
+.form-row button{padding:11px 18px;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);font-family:monospace;font-size:11px;letter-spacing:2px;cursor:pointer;white-space:nowrap}
+footer{border-top:1px solid var(--border);padding:20px 32px;font-size:11px;color:var(--muted);font-family:monospace;text-align:center}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">PYTHIA<span>pythialpha.trade</span></a>
+  <div style="display:flex;gap:24px">
+    <a href="/scanner.html">LIVE SCANNER</a>
+    <a href="/signals.html">SIGNALS</a>
+    <a href="/#buy" style="color:var(--gold)">$9 PLAYBOOK →</a>
+  </div>
+</nav>
+<div class="hero">
+  <div class="badge">📈 STRATEGY 2 — MEAN REVERSION</div>
+  <h1>Buy at 5¢.<br/>Sell at <em>90¢.</em></h1>
+  <p class="sub">6% of Polymarket conditions that touch 3-15¢ recover to 87-93¢. Average hold: 83 hours. Historical top performers: $45K in 2 months, $99K in 3 months. This is the strategy layered on top of merge arb.</p>
+  <div class="warning">⚠ This strategy involves directional risk. Unlike merge arb, you're taking a position — you can lose. Size accordingly. The $39.6M stat is from merge arb. Mean reversion is a separate, riskier strategy with higher potential upside.</div>
+  <div class="stats-row">
+    <div class="stat"><div class="num">1,372%</div><div class="lbl">THEORETICAL APY<br/>ON WINNERS</div></div>
+    <div class="stat"><div class="num">6%</div><div class="lbl">HIT RATE FROM<br/>3-15¢ RANGE</div></div>
+    <div class="stat"><div class="num">83h</div><div class="lbl">AVERAGE HOLD<br/>TIME</div></div>
+    <div class="stat"><div class="num">$99K</div><div class="lbl">TOP TRADER 3-MO<br/>(planktonXD)</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>The <em>Mechanic</em></h2>
+  <p>When a Polymarket YES token drops to 3-15¢, one of two things is true: either the market is correctly pricing a near-impossible event, or the market is overreacting to recent news and the price will mean-revert toward a fairer value.</p>
+  <p>6% of the time, markets in this range recover to 87-93¢. That's a 6x-30x return on the token. On a $10 position at 5¢, that's $180 at 90¢. The question is identifying which 6%.</p>
+  <div class="callout">
+    <strong>REAL EXAMPLES</strong>
+    mocamoca wallet: $45,000 profit in 2 months using mean reversion exclusively. planktonXD wallet: $99,000 in 3 months. Both documented on-chain. Both targeting the same 3-15¢ → 87-93¢ pattern on political markets.
+  </div>
+
+  <h2>What Makes a <em>Good Entry</em></h2>
+  <p>Not all 5¢ markets are equal. The signals that indicate genuine mean-reversion potential:</p>
+  <table>
+    <tr><th>Signal</th><th>Positive Indicator</th><th>Negative Indicator</th></tr>
+    <tr><td>Recent price drop reason</td><td>Single news event (overreaction)</td><td>Fundamental change in probability</td></tr>
+    <tr><td>Order book</td><td>Large bid wall at 5¢ (smart money accumulating)</td><td>Thin bids, mostly ask pressure</td></tr>
+    <tr><td>Volume</td><td>Spiking (retail panic selling)</td><td>Steady (informed distribution)</td></tr>
+    <tr><td>Time to resolution</td><td>&gt; 2 weeks remaining</td><td>&lt; 72 hours (limited recovery time)</td></tr>
+    <tr><td>Market type</td><td>Ongoing political question</td><td>Single binary event already determined</td></tr>
+    <tr><td>Related markets</td><td>Contradicts prices in correlated markets</td><td>Confirms current price</td></tr>
+  </table>
+
+  <h2>Position Sizing for <em>Mean Reversion</em></h2>
+  <p>This is not merge arb. You can lose your entire position. Size accordingly.</p>
+  <div class="callout">
+    <strong>SIZING RULES</strong>
+    Maximum 5% of capital per mean reversion trade (vs 30% cap for merge arb). Never more than 3 active mean reversion positions simultaneously. Set a hard stop: if the price drops another 50% from entry, exit and reassess. The 83-hour average hold means capital is locked — plan for that.
+  </div>
+
+  <h2>The <em>Price Magnet</em> Variant</h2>
+  <p>A related but lower-return strategy: when a market touches 25¢ or 75¢, 54% of the time it reverts to 50¢. Average hold: 32 hours. Average return per cycle: ~8%.</p>
+  <p>This is lower upside than full mean reversion but far higher hit rate (54% vs 6%) and shorter hold time. It's better suited for capital that needs to stay liquid.</p>
+  <table>
+    <tr><th>Strategy</th><th>Entry</th><th>Exit</th><th>Hit Rate</th><th>Avg Hold</th><th>Avg Return</th></tr>
+    <tr><td>Mean Reversion</td><td>3-15¢</td><td>87-93¢</td><td>6%</td><td>83h</td><td>~600-1800%</td></tr>
+    <tr><td>Price Magnet</td><td>25¢ or 75¢</td><td>50¢</td><td>54%</td><td>32h</td><td>~8%</td></div></td></tr>
+  </table>
+
+  <h2>The <em>Stack</em></h2>
+  <p>The optimal setup runs all three strategies simultaneously with appropriate capital allocation:</p>
+  <table>
+    <tr><th>Strategy</th><th>Capital %</th><th>Risk Level</th><th>Expected contribution</th></tr>
+    <tr><td>Merge Arb</td><td>60%</td><td>Near-zero</td><td>Steady base income, compounds fast</td></tr>
+    <tr><td>Price Magnet</td><td>25%</td><td>Low-medium</td><td>8% per cycle, 32h hold</td></tr>
+    <tr><td>Mean Reversion</td><td>15%</td><td>High</td><td>Lottery ticket — low hit rate, massive upside</td></tr>
+  </table>
+</div>
+
+<div class="cta-box">
+  <h3>Everything in the Playbook</h3>
+  <p>Merge arb mechanics, fee structure, Kelly sizing, AND the mean reversion + price magnet strategies. Plus working Python scanner code.</p>
+  <div class="price">$9<span>/one-time</span></div>
+  <a href="https://buy.stripe.com/4gMeVc7XNfoi92J7Qn6Na00">GET THE PLAYBOOK →</a>
+  <p style="margin-top:24px;font-size:13px">Or get alerts when our scanner spots mean reversion setups:</p>
+  <form class="form-row" action="https://formsubmit.co/pythia.corporation@gmail.com" method="POST">
+    <input type="hidden" name="_subject" value="Pythia — Mean Reversion Alert Signup"/>
+    <input type="hidden" name="_captcha" value="false"/>
+    <input type="hidden" name="_next" value="https://pythialpha.trade/thanks.html"/>
+    <input type="email" name="email" required placeholder="your@email.com"/>
+    <button type="submit">GET ALERTS →</button>
+  </form>
+</div>
+
+<footer>© 2026 PYTHIA · pythialpha.trade · @PythiaAlpha · Built entirely by AI.</footer>
+</body>
+</html>
