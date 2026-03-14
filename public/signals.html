@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pythia Signal Feed — Live Polymarket Arb Alerts · $29/mo</title>
+<meta name="description" content="Get real-time alerts when Pythia's scanner detects a profitable merge arb opportunity on Polymarket. Edge delivered to your inbox the moment it opens."/>
+<link rel="canonical" href="https://pythialpha.trade/signals"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--gold-dim:#8B6914;--bg:#050505;--surface:#0d0d0d;--border:#1a1a1a;--text:#e8e8e8;--muted:#666;--green:#4ade80}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;min-height:100vh}
+nav{border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;letter-spacing:2px;color:var(--gold);font-style:italic;text-decoration:none}
+.logo span{font-size:10px;color:var(--muted);display:block;letter-spacing:4px;font-style:normal}
+nav a{font-size:12px;color:var(--muted);letter-spacing:1px;font-family:monospace;text-decoration:none}
+nav a:hover{color:var(--gold)}
+
+.hero{max-width:720px;margin:0 auto;padding:72px 24px 48px}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);color:var(--green);font-size:11px;letter-spacing:3px;padding:5px 14px;margin-bottom:28px;font-family:monospace}
+.dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:clamp(34px,5vw,54px);line-height:1.1;font-weight:400;margin-bottom:20px}
+h1 em{color:var(--gold);font-style:normal}
+.sub{font-size:17px;color:#aaa;line-height:1.6;margin-bottom:48px;font-family:sans-serif;max-width:580px}
+
+/* PRICING */
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:720px;margin:0 auto;padding:0 24px 48px}
+@media(max-width:600px){.plans{grid-template-columns:1fr}}
+.plan{background:var(--surface);border:1px solid var(--border);padding:28px;position:relative}
+.plan.featured{border-color:var(--gold-dim);background:rgba(201,168,76,.04)}
+.plan-tag{position:absolute;top:-1px;right:20px;background:var(--gold);color:#000;font-size:10px;letter-spacing:2px;padding:3px 10px;font-family:monospace;font-weight:bold}
+.plan-name{font-size:12px;letter-spacing:3px;color:var(--muted);font-family:monospace;margin-bottom:12px}
+.plan-price{font-size:42px;color:var(--gold);font-family:monospace;line-height:1}
+.plan-price span{font-size:14px;color:var(--muted)}
+.plan-desc{font-size:13px;color:var(--muted);font-family:sans-serif;margin:12px 0 20px;line-height:1.5}
+.plan ul{list-style:none;margin-bottom:24px}
+.plan ul li{font-size:13px;color:#ccc;font-family:sans-serif;padding:5px 0;display:flex;gap:8px}
+.plan ul li::before{content:'✓';color:var(--green);flex-shrink:0}
+.plan-btn{display:block;width:100%;padding:13px;font-family:monospace;font-size:12px;letter-spacing:2px;font-weight:bold;cursor:pointer;border:none;text-align:center;text-decoration:none;transition:opacity .2s}
+.plan-btn.primary{background:var(--gold);color:#000}
+.plan-btn.secondary{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.plan-btn:hover{opacity:.8}
+
+/* HOW IT WORKS */
+.section{max-width:720px;margin:0 auto;padding:48px 24px}
+h2{font-size:26px;font-weight:400;margin-bottom:32px}
+h2 em{color:var(--gold);font-style:normal}
+.steps{display:flex;flex-direction:column;gap:0}
+.step{display:flex;gap:20px;padding:24px 0;border-bottom:1px solid var(--border)}
+.step:last-child{border-bottom:none}
+.step-num{font-size:32px;color:var(--gold-dim);font-family:monospace;font-weight:bold;min-width:40px;line-height:1}
+.step-title{font-size:16px;margin-bottom:6px}
+.step-desc{font-size:14px;color:var(--muted);font-family:sans-serif;line-height:1.6}
+
+/* SAMPLE SIGNAL */
+.signal-demo{background:#080808;border:1px solid var(--border);border-left:3px solid var(--green);padding:20px 24px;margin:32px 0;font-family:monospace;font-size:13px}
+.signal-demo .sig-header{color:var(--green);font-size:11px;letter-spacing:2px;margin-bottom:12px}
+.signal-demo .sig-line{color:#ccc;line-height:2}
+.signal-demo .sig-line span{color:var(--gold)}
+
+/* FAQ */
+.faqs{max-width:720px;margin:0 auto;padding:0 24px 80px}
+.faq{border-bottom:1px solid var(--border);padding:20px 0}
+.faq h3{font-size:15px;font-weight:400;margin-bottom:8px;cursor:pointer}
+.faq p{font-size:14px;color:var(--muted);font-family:sans-serif;line-height:1.6}
+
+footer{border-top:1px solid var(--border);padding:20px 32px;font-size:11px;color:var(--muted);font-family:monospace;text-align:center}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">PYTHIA<span>pythialpha.trade</span></a>
+  <div style="display:flex;gap:24px">
+    <a href="/calculator.html">CALCULATOR</a>
+    <a href="/#buy">$9 PLAYBOOK</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="badge"><span class="dot"></span>SCANNER RUNNING — LIVE</div>
+  <h1>The oracle <em>pings you</em><br/>when money is on the table.</h1>
+  <p class="sub">Pythia's scanner watches 10,000+ Polymarket conditions around the clock. The moment a profitable merge arb opens, you get the alert. Entry price. Position size. Edge percentage. Everything.</p>
+</div>
+
+<div class="plans">
+  <div class="plan">
+    <div class="plan-name">STARTER</div>
+    <div class="plan-price">$29<span>/mo</span></div>
+    <div class="plan-desc">Daily digest of the best opportunities. Great for manual traders.</div>
+    <ul>
+      <li>Daily email: top 5 arb opportunities</li>
+      <li>Market name, YES/NO prices, edge %</li>
+      <li>Kelly-sized position recommendation</li>
+      <li>Non-crypto markets only (zero fees)</li>
+      <li>Cancel anytime</li>
+    </ul>
+    <a href="#waitlist" class="plan-btn secondary">JOIN WAITLIST →</a>
+  </div>
+  <div class="plan featured">
+    <div class="plan-tag">BEST VALUE</div>
+    <div class="plan-name">PRO</div>
+    <div class="plan-price">$79<span>/mo</span></div>
+    <div class="plan-desc">Real-time alerts the moment an opportunity opens. For serious traders.</div>
+    <ul>
+      <li>Real-time Telegram/email alerts</li>
+      <li>All market types including crypto</li>
+      <li>Full trade details + contract address</li>
+      <li>Position sizing for your capital level</li>
+      <li>Historical signal performance dashboard</li>
+      <li>Cancel anytime</li>
+    </ul>
+    <a href="#waitlist" class="plan-btn primary">JOIN WAITLIST →</a>
+  </div>
+</div>
+
+<!-- Sample Signal -->
+<div class="section" style="padding-top:0">
+  <h2>What a <em>signal</em> looks like</h2>
+  <div class="signal-demo">
+    <div class="sig-header">🔮 PYTHIA ALPHA — MERGE ARB DETECTED</div>
+    <div class="sig-line">Market: <span>"Will Trump sign the spending bill before March 31?"</span></div>
+    <div class="sig-line">Type: <span>Politics (ZERO FEES ✓)</span></div>
+    <div class="sig-line">YES ask: <span>$0.43</span> · NO ask: <span>$0.54</span></div>
+    <div class="sig-line">Total cost: <span>$0.97</span> · Profit/share: <span style="color:#4ade80">+$0.03 (3.09% edge)</span></div>
+    <div class="sig-line">Recommended size ($300 capital): <span>$18.50 → 19.1 shares</span></div>
+    <div class="sig-line">Expected profit: <span style="color:#4ade80">+$0.57</span> · Settlement: <span>~3 seconds after merge</span></div>
+    <div class="sig-line">Condition ID: <span>0x7a3f...c92b</span></div>
+  </div>
+</div>
+
+<!-- How it works -->
+<div class="section" style="padding-top:0">
+  <h2>How it <em>works</em></h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div>
+        <div class="step-title">Scanner runs 24/7</div>
+        <div class="step-desc">Pythia's bot polls the Gamma API and CLOB API continuously, checking 10,000+ conditions for YES + NO price gaps above the threshold.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div>
+        <div class="step-title">Gap detected → alert fires</div>
+        <div class="step-desc">When a profitable opportunity appears, the system calculates the edge, fee-adjusts for market type, sizes the position via Kelly, and sends the alert.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div>
+        <div class="step-title">You execute the trade</div>
+        <div class="step-desc">Place maker orders on both sides. Once filled, call mergePositions() on the CTF contract. USDC is back in your wallet in seconds.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div>
+        <div class="step-title">Compound and repeat</div>
+        <div class="step-desc">Capital returns immediately after each merge. Same dollar can execute multiple trades per day. Velocity is the edge.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Waitlist -->
+<div class="section" style="padding-top:0" id="waitlist">
+  <h2>Join the <em>waitlist</em></h2>
+  <p style="color:var(--muted);font-family:sans-serif;font-size:14px;margin-bottom:24px">Signal feed launches when the scanner has 30 days of verified live performance. Drop your email — you'll be first in.</p>
+  <form action="https://formsubmit.co/pythia.corporation@gmail.com" method="POST" style="display:flex;gap:8px;max-width:460px">
+    <input type="hidden" name="_subject" value="Pythia Signal Feed — Waitlist Signup"/>
+    <input type="hidden" name="_captcha" value="false"/>
+    <input type="hidden" name="_next" value="https://pythialpha.trade/thanks.html"/>
+    <input type="email" name="email" required placeholder="your@email.com" style="flex:1;background:#080808;border:1px solid var(--border);color:var(--text);padding:12px 14px;font-family:monospace;font-size:14px;outline:none"/>
+    <button type="submit" style="padding:12px 20px;background:var(--gold);border:none;color:#000;font-family:monospace;font-size:12px;letter-spacing:2px;font-weight:bold;cursor:pointer">JOIN →</button>
+  </form>
+</div>
+
+<!-- FAQ -->
+<div class="faqs">
+  <h2 style="margin-bottom:24px">FAQ</h2>
+  <div class="faq">
+    <h3>When does the signal feed launch?</h3>
+    <p>We're running the scanner live now and building a 30-day verified performance record before opening subscriptions. Waitlist members get first access.</p>
+  </div>
+  <div class="faq">
+    <h3>Do I need to know how to code?</h3>
+    <p>No. Signals include everything you need to execute manually: market name, prices, position size recommendation. The $9 Playbook covers the full execution process step by step.</p>
+  </div>
+  <div class="faq">
+    <h3>How often do opportunities appear?</h3>
+    <p>41% of active Polymarket conditions show the gap at some point. In active markets (elections, major events), gaps appear multiple times per day. In quieter periods, a few per week.</p>
+  </div>
+  <div class="faq">
+    <h3>What's the minimum capital needed?</h3>
+    <p>You can start with as little as $50. Quarter-Kelly sizing keeps positions small relative to your account. The strategy compounds well from small starting capital.</p>
+  </div>
+</div>
+
+<footer>© 2026 PYTHIA · pythialpha.trade · @PythiaAlpha · Built entirely by AI.</footer>
+</body>
+</html>

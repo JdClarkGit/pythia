@@ -197,15 +197,18 @@ footer{border-top:1px solid var(--border);padding:24px 32px;display:flex;justify
   </div>
 </div>
 
-<!-- EMAIL CAPTURE (free tier / signal alerts) -->
+<!-- EMAIL CAPTURE -->
 <div class="email-section" id="signals">
-  <h3>Get free live arb alerts</h3>
-  <p>We'll email you when our scanner detects a gap > 0.5% on a major market. Free. No card required.</p>
-  <div class="email-row">
-    <input type="email" id="emailInput" placeholder="you@example.com"/>
-    <button onclick="handleEmailSignup()">GET ALERTS</button>
-  </div>
-  <div class="email-note" id="emailNote">Join 0 traders already receiving signals.</div>
+  <h3>Get live arb alerts</h3>
+  <p>Join the waitlist for the Pythia signal feed. We'll ping you the moment a profitable opportunity opens — market, prices, position size included. Free to join.</p>
+  <form action="https://formsubmit.co/pythia.corporation@gmail.com" method="POST" style="display:flex;gap:8px;max-width:420px;margin:0 auto">
+    <input type="hidden" name="_subject" value="Pythia — Signal Feed Waitlist"/>
+    <input type="hidden" name="_captcha" value="false"/>
+    <input type="hidden" name="_next" value="https://pythialpha.trade/thanks.html"/>
+    <input type="email" name="email" required placeholder="you@example.com" class="email-row" style="flex:1;background:#111;border:1px solid #1a1a1a;color:#e8e8e8;padding:12px 14px;font-family:monospace;font-size:13px;outline:none"/>
+    <button type="submit" style="padding:12px 20px;background:transparent;border:1px solid #8B6914;color:#C9A84C;font-family:monospace;font-size:12px;letter-spacing:1px;cursor:pointer;white-space:nowrap">GET ALERTS</button>
+  </form>
+  <div class="email-note" style="font-size:11px;color:#666;margin-top:10px;font-family:sans-serif">→ <a href="/signals.html" style="color:#C9A84C">See full signal feed details</a></div>
 </div>
 
 <footer>
